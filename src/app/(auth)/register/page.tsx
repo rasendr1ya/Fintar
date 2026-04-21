@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { registerUser } from "@/features/auth/actions";
+import { InteractiveFinny } from "@/components/landing/InteractiveFinny";
 import { Button } from "@/components/ui/Button";
-import { Finny } from "@/components/mascot/Finny";
 import { XMarkIcon, UserIcon, EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 
 export default function RegisterPage() {
@@ -27,7 +27,12 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
-    const result = await registerUser(email, password, username);
+    const formData = new FormData();
+    formData.append("email", email);
+    formData.append("password", password);
+    formData.append("username", username);
+
+    const result = await registerUser(formData);
 
     if (result.error) {
       setError(result.error);
@@ -41,11 +46,9 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col relative overflow-hidden">
-      {/* Decorative Background Elements */}
       <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -z-10" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-xp/10 rounded-full blur-3xl -z-10" />
 
-      {/* Header */}
       <header className="flex items-center justify-between px-6 py-6 md:px-10">
         <Link
           href="/"
@@ -61,12 +64,11 @@ export default function RegisterPage() {
         </Link>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 pb-20">
         <div className="w-full max-w-md">
           <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="inline-block mb-4 hover:scale-110 transition-transform duration-300 cursor-pointer">
-              <Finny pose="celebrate" size={120} />
+            <div className="inline-block mb-4">
+              <InteractiveFinny size={120} defaultPose="waving" hoverPose="celebrate" />
             </div>
             <h1 className="text-3xl font-black text-text mb-2 tracking-tight">
               Gabung Fintar
@@ -137,16 +139,16 @@ export default function RegisterPage() {
             </form>
           </div>
 
-          {/* Footer Text */}
           <p className="mt-8 text-center text-sm text-muted">
-            Dengan mendaftar, kamu setuju{" "}
+            Dengan mendaftar, kamu menyetujui{" "}
             <Link href="/terms" className="text-primary font-bold hover:underline">
-              Syarat
+              Syarat & Ketentuan
             </Link>{" "}
-            &{" "}
+            dan{" "}
             <Link href="/privacy" className="text-primary font-bold hover:underline">
-              Privasi
-            </Link>
+              Kebijakan Privasi
+            </Link>{" "}
+            kami.
           </p>
         </div>
       </main>

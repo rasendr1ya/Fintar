@@ -3,35 +3,34 @@
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function registerUser(email: string, password: string, username: string) {
-  const trimmedUsername = username.trim();
-  const trimmedEmail = email.trim().toLowerCase();
+export async function registerUser(formData: FormData) {
+  const username = (formData.get("username") as string)?.trim();
+  const email = (formData.get("email") as string)?.trim().toLowerCase();
+  const password = formData.get("password") as string;
 
-  if (!trimmedUsername || trimmedUsername.length < 2) {
+  if (!username || username.length < 2) {
     return { error: "Nama panggilan minimal 2 karakter" };
   }
-  if (trimmedUsername.length > 30) {
+  if (username.length > 30) {
     return { error: "Nama panggilan maksimal 30 karakter" };
   }
-  if (!/^[a-zA-Z0-9_ ]+$/.test(trimmedUsername)) {
+  if (!/^[a-zA-Z0-9_ ]+$/.test(username)) {
     return { error: "Nama panggilan hanya boleh huruf, angka, dan underscore" };
   }
-  if (password.length < 6) {
+  if (!password || password.length < 6) {
     return { error: "Password minimal 6 karakter" };
   }
 
   const supabase = await createClient();
 
-  // Sign out any existing session first to prevent stale sessions
-  // from interfering with registration
   await supabase.auth.signOut({ scope: "global" });
 
   const { data, error: signUpError } = await supabase.auth.signUp({
-    email: trimmedEmail,
+    email,
     password,
     options: {
       data: {
-        username: trimmedUsername,
+        username,
       },
     },
   });
@@ -44,7 +43,10 @@ export async function registerUser(email: string, password: string, username: st
   return { success: true, user: data.user };
 }
 
-export async function loginUser(email: string, password: string) {
+export async function loginUser(formData: FormData) {
+  const email = (formData.get("email") as string)?.trim().toLowerCase();
+  const password = formData.get("password") as string;
+
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -60,7 +62,10 @@ export async function loginUser(email: string, password: string) {
   return { success: true, user: data.user };
 }
 
-export async function verifyOtp(email: string, token: string) {
+export async function verifyOtp(formData: FormData) {
+  const email = formData.get("email") as string;
+  const token = formData.get("token") as string;
+
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.verifyOtp({
@@ -77,7 +82,9 @@ export async function verifyOtp(email: string, token: string) {
   return { success: true, user: data.user };
 }
 
-export async function resendOtp(email: string) {
+export async function resendOtp(formData: FormData) {
+  const email = formData.get("email") as string;
+
   const supabase = await createClient();
 
   const { error } = await supabase.auth.resend({
@@ -109,7 +116,9 @@ export async function getSession() {
   return { user };
 }
 
-export async function resetPassword(email: string) {
+export async function resetPassword(formData: FormData) {
+  const email = formData.get("email") as string;
+
   const supabase = await createClient();
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -123,11 +132,13 @@ export async function resetPassword(email: string) {
   return { success: true };
 }
 
-export async function updatePassword(newPassword: string) {
+export async function updatePassword(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) {
     return { error: "Not authenticated" };
   }
+
+  const newPassword = formData.get("newPassword") as string;
 
   const supabase = await createClient();
 

@@ -20,7 +20,11 @@ export default function LoginPage() {
     setError("");
     setIsLoading(true);
 
-    const result = await loginUser(email, password);
+    const formData = new FormData();
+    formData.append("email", email);
+    formData.append("password", password);
+
+    const result = await loginUser(formData);
 
     if (result.error) {
       setError(result.error);
@@ -34,11 +38,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col relative overflow-hidden">
-      {/* Decorative Background Elements */}
       <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -z-10" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-xp/10 rounded-full blur-3xl -z-10" />
 
-      {/* Header */}
       <header className="flex items-center justify-between px-6 py-6 md:px-10">
         <Link
           href="/"
@@ -54,7 +56,6 @@ export default function LoginPage() {
         </Link>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 pb-20">
         <div className="w-full max-w-md">
           <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -113,16 +114,16 @@ export default function LoginPage() {
             </form>
           </div>
 
-          {/* Footer Text */}
           <p className="mt-8 text-center text-sm text-muted">
-            Dengan masuk, kamu setuju{" "}
+            Dengan masuk, kamu menyetujui{" "}
             <Link href="/terms" className="text-primary font-bold hover:underline">
-              Syarat
+              Syarat & Ketentuan
             </Link>{" "}
-            &{" "}
+            dan{" "}
             <Link href="/privacy" className="text-primary font-bold hover:underline">
-              Privasi
-            </Link>
+              Kebijakan Privasi
+            </Link>{" "}
+            kami.
           </p>
         </div>
       </main>

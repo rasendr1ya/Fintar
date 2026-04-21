@@ -15,7 +15,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-white">
       {/* ===================== HERO SECTION ===================== */}
-      <section className="relative min-h-[100vh] bg-linear-to-b from-[#1e1b4b] via-[#312e81] to-[#4338ca] overflow-hidden flex flex-col">
+      <section className="relative min-h-screen bg-linear-to-b from-[#1e1b4b] via-[#312e81] to-[#4338ca] overflow-hidden flex flex-col">
         {/* Navbar */}
         <nav className="relative z-50 px-4 sm:px-6 lg:px-8 py-4">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -60,7 +60,7 @@ export default function LandingPage() {
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-[1.1]">
                 Kuasai Uangmu,
                 <br />
-                <span className="text-[#FBBF24]">Raih Masa Depan!</span>
+                <span className="text-coins">Raih Masa Depan!</span>
               </h1>
               <p className="mt-6 text-lg md:text-xl text-white/80 max-w-md">
                 Belajar keuangan cuma 5 menit sehari. Seru kayak main game,
@@ -102,16 +102,16 @@ export default function LandingPage() {
              
              {/* Falling Coins from tree */}
              <div className="absolute top-[30%] left-[20%]">
-               <div className="w-3 h-3 rounded-full bg-[#FBBF24] border border-[#F59E0B] animate-coin-fall opacity-80" />
+               <div className="w-3 h-3 rounded-full bg-coins border border-[#F59E0B] animate-coin-fall opacity-80" />
              </div>
              <div className="absolute top-[25%] right-[25%]">
-               <div className="w-2 h-2 rounded-full bg-[#FBBF24] border border-[#F59E0B] animate-coin-fall-delay-1 opacity-80" />
+               <div className="w-2 h-2 rounded-full bg-coins border border-[#F59E0B] animate-coin-fall-delay-1 opacity-80" />
              </div>
              <div className="absolute top-[35%] left-[40%]">
-               <div className="w-2.5 h-2.5 rounded-full bg-[#FBBF24] border border-[#F59E0B] animate-coin-fall-delay-2 opacity-80" />
+               <div className="w-2.5 h-2.5 rounded-full bg-coins border border-[#F59E0B] animate-coin-fall-delay-2 opacity-80" />
              </div>
              <div className="absolute top-[28%] right-[35%]">
-               <div className="w-2 h-2 rounded-full bg-[#FBBF24] border border-[#F59E0B] animate-coin-fall-delay-3 opacity-80" />
+               <div className="w-2 h-2 rounded-full bg-coins border border-[#F59E0B] animate-coin-fall-delay-3 opacity-80" />
              </div>
           </div>
           
@@ -198,7 +198,7 @@ export default function LandingPage() {
             <div className="flex justify-center">
               <div className="relative">
                 <div className="w-64 h-64 md:w-80 md:h-80 bg-linear-to-br from-primary/10 to-primary/5 rounded-3xl flex items-center justify-center">
-                  <Finny size={180} pose="celebrate" className="drop-shadow-lg" />
+                  <InteractiveFinny size={180} defaultPose="default" hoverPose="celebrate" />
                 </div>
                 {/* Floating elements */}
                 <div className="absolute -top-4 -right-4 bg-white rounded-2xl shadow-lg px-4 py-2">
@@ -416,12 +416,32 @@ export default function LandingPage() {
           <Button
             href="/register"
             size="lg"
-            className="bg-white !text-primary hover:bg-white/90 border-b-4 border-white/50 rounded-2xl"
+            className="bg-white text-primary! hover:bg-white/90 border-b-4 border-white/50 rounded-2xl"
           >
             Daftar Gratis Sekarang
           </Button>
         </div>
       </section>
+
+      {/* ===================== FOOTER ===================== */}
+      <footer className="bg-gray-900 text-gray-400 py-12">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Logo size="sm" variant="light" withText={false} />
+              <span className="text-sm">&copy; {new Date().getFullYear()} Fintar. Semua hak dilindungi.</span>
+            </div>
+            <div className="flex items-center gap-6">
+              <Link href="/terms" className="text-sm hover:text-white transition-colors">
+                Syarat & Ketentuan
+              </Link>
+              <Link href="/privacy" className="text-sm hover:text-white transition-colors">
+                Kebijakan Privasi
+              </Link>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

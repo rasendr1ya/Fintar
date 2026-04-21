@@ -66,6 +66,13 @@
   --color-border: #E2E8F0;
   --color-bg: #F8FAFC;
   
+  /* Legacy support (will remove later) */
+  --color-jet: #0F172A;
+  --color-french-gray: #64748B;
+  --color-slate-gray: #7C3AED;
+  --color-slate-700: #6D28D9;
+  --color-lavender: #F5F3FF;
+  
   /* Fonts */
   --font-heading: var(--font-nunito);
   --font-body: var(--font-nunito);
@@ -170,9 +177,11 @@ h1, h2, h3, h4, h5, h6 {
 
 @keyframes wave {
   0% { transform: rotate(0deg); }
-  25% { transform: rotate(-20deg); }
-  50% { transform: rotate(10deg); }
-  75% { transform: rotate(-20deg); }
+  15% { transform: rotate(-14deg); }
+  30% { transform: rotate(8deg); }
+  45% { transform: rotate(-14deg); }
+  60% { transform: rotate(6deg); }
+  75% { transform: rotate(-8deg); }
   100% { transform: rotate(0deg); }
 }
 
@@ -224,7 +233,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .animate-wave {
-  animation: wave 2s ease-in-out infinite;
+  animation: wave 2.5s ease-in-out infinite;
   transform-origin: 70% 70%;
 }
 

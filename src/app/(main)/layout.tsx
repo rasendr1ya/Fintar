@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, getCurrentProfile } from "@/lib/supabase/server";
 import { AppShell } from "@/components/layout/AppShell";
+import { checkAndRefillHearts } from "@/features/learning/actions/lessons";
 
 export default async function MainLayout({
   children,
@@ -8,17 +9,19 @@ export default async function MainLayout({
   children: React.ReactNode;
 }) {
   const user = await getCurrentUser();
-  
+
   if (!user) {
     redirect("/login");
   }
 
   const profile = await getCurrentProfile();
-  
+
   if (!profile?.onboarding_done) {
     redirect("/onboarding");
   }
-  
+
+  await checkAndRefillHearts();
+
   return (
     <AppShell
       hearts={profile?.hearts ?? 5}

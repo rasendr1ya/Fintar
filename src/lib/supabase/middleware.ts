@@ -104,5 +104,20 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // 5. Authenticated user on onboarding who already completed it → learn
+  if (user && isOnboarding) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarding_done")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.onboarding_done) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/learn";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }

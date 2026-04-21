@@ -96,7 +96,11 @@ export default function VerifyCodePage() {
       return;
     }
 
-    const result = await verifyOtp(email, code);
+    const formData = new FormData();
+    formData.append("email", email);
+    formData.append("token", code);
+
+    const result = await verifyOtp(formData);
 
     if (result.error) {
       setError(result.error);
@@ -118,7 +122,10 @@ export default function VerifyCodePage() {
       return;
     }
 
-    const result = await resendOtp(email);
+    const formData = new FormData();
+    formData.append("email", email);
+
+    const result = await resendOtp(formData);
     if (result.error) {
       setError(result.error);
       return;
@@ -130,11 +137,9 @@ export default function VerifyCodePage() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col relative overflow-hidden">
-      {/* Decorative Background Elements */}
       <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -z-10" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-xp/10 rounded-full blur-3xl -z-10" />
 
-      {/* Header */}
       <header className="flex items-center justify-between px-6 py-6 md:px-10">
         <Link
           href="/"
@@ -150,7 +155,6 @@ export default function VerifyCodePage() {
         </Link>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 pb-20">
         <div className="w-full max-w-md">
           <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -196,11 +200,11 @@ export default function VerifyCodePage() {
                 ))}
               </div>
 
-              <Button 
-                type="submit" 
-                fullWidth 
-                isLoading={isLoading} 
-                size="lg" 
+              <Button
+                type="submit"
+                fullWidth
+                isLoading={isLoading}
+                size="lg"
                 disabled={otp.join("").length !== OTP_LENGTH}
                 className="mt-2 shadow-lg shadow-primary/20"
               >

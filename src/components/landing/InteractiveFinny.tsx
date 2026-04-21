@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Finny } from "@/components/mascot/Finny";
 
-type FinnyPose = "default" | "celebrate" | "thinking" | "sad" | "waving";
+type FinnyPose = "default" | "celebrate" | "thinking" | "sad" | "waving" | "reading";
 
 interface InteractiveFinnyProps {
   size?: number;
@@ -20,12 +20,27 @@ export function InteractiveFinny({
 }: InteractiveFinnyProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleMouseEnter = () => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    hoverTimerRef.current = setTimeout(() => setIsHovered(false), 100);
+  };
 
   const handleClick = () => {
     setIsClicked(true);
-    // Reset after animation
     setTimeout(() => setIsClicked(false), 600);
   };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    };
+  }, []);
 
   const currentPose = isClicked ? "celebrate" : isHovered ? hoverPose : defaultPose;
 
@@ -34,17 +49,20 @@ export function InteractiveFinny({
       className={`relative cursor-pointer transition-transform duration-300 ${
         isHovered ? "scale-110" : "scale-100"
       } ${isClicked ? "animate-bounce" : ""} ${className}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onTouchStart={() => setIsHovered(true)}
+      onTouchEnd={() => {
+        setIsHovered(false);
+        handleClick();
+      }}
       onClick={handleClick}
     >
-      {/* Sparkles that appear on hover */}
       <div
-        className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${
+        className={`absolute inset-0 pointer-events-none transition-opacity duration-500 ${
           isHovered ? "opacity-100" : "opacity-0"
         }`}
       >
-        {/* Sparkle 1 */}
         <div className="absolute -top-2 -left-2 animate-sparkle">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path
@@ -53,7 +71,6 @@ export function InteractiveFinny({
             />
           </svg>
         </div>
-        {/* Sparkle 2 */}
         <div
           className="absolute -top-1 -right-3 animate-sparkle"
           style={{ animationDelay: "0.2s" }}
@@ -65,7 +82,6 @@ export function InteractiveFinny({
             />
           </svg>
         </div>
-        {/* Sparkle 3 */}
         <div
           className="absolute -bottom-1 -right-2 animate-sparkle"
           style={{ animationDelay: "0.4s" }}
@@ -77,7 +93,6 @@ export function InteractiveFinny({
             />
           </svg>
         </div>
-        {/* Sparkle 4 */}
         <div
           className="absolute -bottom-2 -left-1 animate-sparkle"
           style={{ animationDelay: "0.6s" }}
@@ -91,31 +106,27 @@ export function InteractiveFinny({
         </div>
       </div>
 
-      {/* Glow effect on hover */}
       <div
-        className={`absolute inset-0 rounded-full bg-yellow-300/30 blur-xl transition-opacity duration-300 ${
+        className={`absolute inset-0 rounded-full bg-yellow-300/30 blur-xl transition-opacity duration-500 ${
           isHovered ? "opacity-100" : "opacity-0"
         }`}
         style={{ transform: "scale(1.5)" }}
       />
 
-      {/* Finny with floating animation */}
       <div className="relative animate-float">
-        <Finny size={size} pose={currentPose} className="drop-shadow-xl" />
+        <Finny size={size} pose={currentPose} className="drop-shadow-xl transition-all duration-300" />
       </div>
 
-      {/* Speech bubble on hover */}
       <div
         className={`absolute -top-12 left-1/2 -translate-x-1/2 transition-all duration-300 ${
           isHovered
             ? "opacity-100 translate-y-0"
-            : "opacity-0 translate-y-2"
+            : "opacity-0 translate-y-2 pointer-events-none"
         }`}
       >
         <div className="bg-white px-3 py-1.5 rounded-full shadow-lg whitespace-nowrap">
           <span className="text-sm font-bold text-primary">Yuk mulai! 🚀</span>
         </div>
-        {/* Speech bubble tail */}
         <div className="absolute left-1/2 -translate-x-1/2 -bottom-1.5">
           <div className="w-3 h-3 bg-white rotate-45 shadow-lg" />
         </div>
