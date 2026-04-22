@@ -1,8 +1,10 @@
-import type { Unit } from "@/types/database";
 import { BookOpenIcon, CheckCircleIcon } from "@heroicons/react/24/solid";
 
 interface UnitHeaderProps {
-  unit: Unit;
+  unit: {
+    title: string;
+    description: string | null;
+  };
   colorTheme: { bg: string; border: string; text: string; light: string; isHex?: boolean };
   completedCount: number;
   totalCount: number;
@@ -44,7 +46,7 @@ export function UnitHeader({ unit, colorTheme, completedCount, totalCount }: Uni
           <div className="flex items-center gap-2 mb-2">
             <h2 className="text-2xl font-extrabold tracking-tight drop-shadow-md">{unit.title}</h2>
           </div>
-          <p className="text-white/90 text-sm font-medium mb-4 leading-relaxed max-w-[90%]">
+          <p className="text-white/90 text-sm font-medium mb-4 leading-relaxed max-w-[90%] line-clamp-2">
             {unit.description}
           </p>
           

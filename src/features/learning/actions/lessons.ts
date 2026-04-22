@@ -4,9 +4,40 @@ import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { calculateLevel, calculateMaxHearts } from "@/lib/utils";
 import { calculateNewStreak, getHeartsToRefill } from "@/lib/streak";
-import type { Unit, Lesson, Challenge, UserProgress } from "@/types/database";
+import type { Challenge, UserProgress } from "@/types/database";
 
-type LessonStatus = "completed" | "current" | "locked";
+// ── Types ──────────────────────────────────────────────────
+
+export interface LessonInPath {
+  id: string;
+  title: string;
+  order_index: number;
+}
+
+export interface UnitWithLessons {
+  id: string;
+  title: string;
+  description: string | null;
+  order_index: number;
+  color_theme: string;
+  tags: string[];
+  lessons: LessonInPath[];
+}
+
+export interface LearningPathData {
+  units: UnitWithLessons[];
+  completedLessonIds: string[];
+  error?: string;
+}
+
+// ── Tag Mapping untuk Personalisasi ───────────────────────
+
+const GOAL_TAG_MAP: Record<string, string[]> = {
+  hutang: ["debt", "basics"],
+  investasi: ["investing", "stocks", "property"],
+  cashflow: ["budgeting", "banking"],
+  darurat: ["basics", "insurance", "risk"],
+};
 
 export async function getUserProgress(userId: string): Promise<UserProgress[]> {
   const supabase = await createClient();
@@ -24,91 +55,91 @@ export async function getUserProgress(userId: string): Promise<UserProgress[]> {
   return data || [];
 }
 
-interface LessonWithStatus extends Lesson {
-  status: LessonStatus;
-}
-
-interface UnitWithLessons extends Unit {
-  lessons: LessonWithStatus[];
-}
-
-export async function getUnitsWithLessons(): Promise<{
-  units: UnitWithLessons[];
-  error?: string;
-}> {
+export async function getUnitsWithLessons(): Promise<LearningPathData> {
   const user = await getCurrentUser();
-  if (!user) return { units: [], error: "Not authenticated" };
+  if (!user) return { units: [], completedLessonIds: [], error: "Not authenticated" };
 
   const supabase = await createClient();
 
+  // 1. Fetch profile untuk personalisasi
   const { data: profile } = await supabase
     .from("profiles")
     .select("financial_goal")
     .eq("id", user.id)
     .single();
 
-  const { data: units, error: unitsError } = await supabase
+  // 2. Fetch semua units yang aktif
+  const { data: unitsData, error: unitsError } = await supabase
     .from("units")
-    .select("*")
+    .select("id, title, description, order_index, color_theme, tags")
     .eq("is_deleted", false)
-    .order("order_index");
+    .order("order_index", { ascending: true });
 
-  if (unitsError || !units) return { units: [], error: "Failed to fetch units" };
+  if (unitsError || !unitsData) {
+    console.error("Error fetching units:", unitsError);
+    return { units: [], completedLessonIds: [], error: unitsError?.message };
+  }
 
-  const { data: lessons } = await supabase
+  // 3. Fetch semua lessons yang aktif (semua unit sekaligus)
+  const { data: lessonsData, error: lessonsError } = await supabase
     .from("lessons")
-    .select("*")
+    .select("id, title, order_index, unit_id")
     .eq("is_deleted", false)
-    .order("order_index");
+    .order("order_index", { ascending: true });
 
-  const { data: progress } = await supabase
+  if (lessonsError || !lessonsData) {
+    console.error("Error fetching lessons:", lessonsError);
+    return { units: [], completedLessonIds: [], error: lessonsError?.message };
+  }
+
+  // 4. Fetch completed lessons untuk user ini
+  const { data: progressData } = await supabase
     .from("user_progress")
     .select("lesson_id")
     .eq("user_id", user.id);
 
-  const completedLessonIds = new Set((progress || []).map((p) => p.lesson_id));
+  const completedLessonIds = progressData?.map((p) => p.lesson_id) ?? [];
 
-  const financialGoalTags: Record<string, string[]> = {
-    hutang: ["debt", "basics"],
-    investasi: ["investing", "stocks", "property"],
-    cashflow: ["budgeting", "banking"],
-    darurat: ["basics", "insurance", "risk"],
-  };
-
-  const goalTags = financialGoalTags[profile?.financial_goal || ""] || [];
-
-  const unitsWithLessons: UnitWithLessons[] = units.map((unit) => {
-    const unitLessons = (lessons || [])
+  // 5. Gabungkan lessons ke unit masing-masing (max 3 per unit)
+  const unitsWithLessons: UnitWithLessons[] = unitsData.map((unit) => {
+    const unitLessons = lessonsData
       .filter((l) => l.unit_id === unit.id)
-      .map((lesson, idx, arr) => {
-        let status: LessonStatus = "locked";
-        const prevLesson = idx > 0 ? arr[idx - 1] : null;
+      .slice(0, 3); // Tampilkan max 3 lesson per unit
 
-        if (completedLessonIds.has(lesson.id)) {
-          status = "completed";
-        } else if (idx === 0 || (prevLesson && completedLessonIds.has(prevLesson.id))) {
-          status = "current";
-        }
-
-        return { ...lesson, status };
-      });
-
-    return { ...unit, lessons: unitLessons };
+    return {
+      ...unit,
+      tags: unit.tags ?? [],
+      lessons: unitLessons,
+    };
   });
 
-  unitsWithLessons.sort((a, b) => {
-    const aIsBasic = a.order_index <= 3 ? 0 : 1;
-    const bIsBasic = b.order_index <= 3 ? 0 : 1;
-    if (aIsBasic !== bIsBasic) return aIsBasic - bIsBasic;
+  // 6. Filter unit yang tidak punya lesson (jangan tampilkan)
+  const unitsWithContent = unitsWithLessons.filter(
+    (u) => u.lessons.length > 0
+  );
 
-    const aMatchesGoal = goalTags.some((tag) => a.tags?.includes(tag)) ? 0 : 1;
-    const bMatchesGoal = goalTags.some((tag) => b.tags?.includes(tag)) ? 0 : 1;
-    if (aMatchesGoal !== bMatchesGoal) return aMatchesGoal - bMatchesGoal;
+  // 7. Personalisasi urutan unit
+  const financialGoal = profile?.financial_goal ?? null;
+  const relevantTags = financialGoal
+    ? (GOAL_TAG_MAP[financialGoal] ?? [])
+    : [];
 
-    return a.order_index - b.order_index;
+  const fundamentals = unitsWithContent.filter((u) => u.order_index <= 3);
+  const rest = unitsWithContent.filter((u) => u.order_index > 3);
+
+  const hasTagOverlap = (unitTags: string[]) =>
+    unitTags.some((tag) => relevantTags.includes(tag));
+
+  const sortedRest = [...rest].sort((a, b) => {
+    const aMatch = hasTagOverlap(a.tags) ? 0 : 1;
+    const bMatch = hasTagOverlap(b.tags) ? 0 : 1;
+    if (aMatch !== bMatch) return aMatch - bMatch;
+    return a.order_index - b.order_index; // tie-break: order_index asli
   });
 
-  return { units: unitsWithLessons };
+  const sortedUnits = [...fundamentals, ...sortedRest];
+
+  return { units: sortedUnits, completedLessonIds };
 }
 
 export async function getLessonById(lessonId: string) {

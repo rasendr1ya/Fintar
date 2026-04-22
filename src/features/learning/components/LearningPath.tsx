@@ -1,16 +1,13 @@
 "use client";
 
-import type { Unit, Lesson, UserProgress } from "@/types/database";
+import { UnitWithLessons } from "@/features/learning/actions/lessons";
 import { UnitHeader } from "./UnitHeader";
 import { LessonButton } from "./LessonButton";
-
-interface UnitWithLessons extends Unit {
-  lessons: Lesson[];
-}
+import { Finny } from "@/components/mascot/Finny";
 
 interface LearningPathProps {
   units: UnitWithLessons[];
-  userProgress: UserProgress[];
+  completedLessonIds: Set<string>;
 }
 
 // Color mapping for unit themes
@@ -54,52 +51,91 @@ function getThemeColors(theme: string) {
 // Zig-zag offset pattern (pixels)
 const pathOffsets = [0, 60, 90, 60, 0, -60, -90, -60];
 
-export function LearningPath({ units, userProgress }: LearningPathProps) {
-  const completedLessonIds = new Set(userProgress.map((p) => p.lesson_id));
+export function LearningPath({ units, completedLessonIds }: LearningPathProps) {
+  // Tentukan posisi Finny — hanya 1 di seluruh path
+  // Yaitu: lesson pertama yang belum completed dari semua unit
+  let finnyLessonId: string | null = null;
 
-  // Calculate current active lesson (first uncompleted lesson)
-  // Flatten all lessons to find the global index
-  const allLessons = units.flatMap(u => u.lessons);
-  const firstUncompletedIndex = allLessons.findIndex(l => !completedLessonIds.has(l.id));
-  const activeLessonId = firstUncompletedIndex !== -1 ? allLessons[firstUncompletedIndex]?.id : null;
+  for (const unit of units) {
+    const firstUncompleted = unit.lessons.find(
+      (lesson) => !completedLessonIds.has(lesson.id)
+    );
+    if (firstUncompleted) {
+      finnyLessonId = firstUncompleted.id;
+      break; // Stop — hanya 1 Finny
+    }
+  }
 
   return (
     <div className="flex flex-col gap-16 pb-32">
       {units.map((unit) => {
         const colors = getThemeColors(unit.color_theme || "default");
-        
+
         // Stats for header
         const unitCompletedCount = unit.lessons.filter(l => completedLessonIds.has(l.id)).length;
-        
+
         return (
           <div key={unit.id} className="relative">
-            <UnitHeader 
-              unit={unit} 
-              colorTheme={colors} 
+            <UnitHeader
+              unit={unit}
+              colorTheme={colors}
               completedCount={unitCompletedCount}
               totalCount={unit.lessons.length}
             />
-            
+
             <div className="flex flex-col items-center py-4 relative min-h-[200px]">
-              {unit.lessons.map((lesson, index) => {
+              {unit.lessons.map((lesson, lessonIndex) => {
                 const isCompleted = completedLessonIds.has(lesson.id);
-                const isCurrent = lesson.id === activeLessonId;
-                const isLocked = !isCompleted && !isCurrent;
-                
+
+                // Cari index lesson pertama yang belum selesai di unit ini
+                const firstUncompletedIndex = unit.lessons.findIndex(
+                  (l) => !completedLessonIds.has(l.id)
+                );
+
+                const isCurrent =
+                  firstUncompletedIndex !== -1 &&
+                  lessonIndex === firstUncompletedIndex;
+
+                const isLocked =
+                  !isCompleted &&
+                  (firstUncompletedIndex === -1 ||
+                    lessonIndex > firstUncompletedIndex);
+
+                const status: "completed" | "current" | "locked" =
+                  isCompleted ? "completed" : isCurrent ? "current" : "locked";
+
                 // Cycle through offsets
-                const offsetIndex = index % pathOffsets.length;
+                const offsetIndex = lessonIndex % pathOffsets.length;
                 const xOffset = pathOffsets[offsetIndex];
 
+                const isFinnyHere = lesson.id === finnyLessonId;
+
                 return (
-                  <div key={lesson.id} className="relative z-10 mb-8 last:mb-0">
+                  <div
+                    key={lesson.id}
+                    className="relative z-10 mb-8 last:mb-0"
+                    style={{ transform: `translateX(${xOffset}px)` }}
+                  >
+                    {/* Finny muncul di atas lesson current global */}
+                    {isFinnyHere && (
+                      <div className="absolute -top-20 left-1/2 -translate-x-1/2 animate-bounce-subtle z-20 pointer-events-none">
+                        <div className="bg-white px-4 py-2 rounded-2xl shadow-xl border-2 border-primary/10 mb-2 whitespace-nowrap text-sm font-extrabold text-primary text-center relative">
+                          Mulai!
+                          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rotate-45 border-b-2 border-r-2 border-primary/10" />
+                        </div>
+                        <Finny size={80} pose="default" />
+                      </div>
+                    )}
+
+                    {/* Ripple Effect for Current */}
+                    {isCurrent && (
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-white/30 rounded-full animate-pulse z-0" />
+                    )}
+
                     <LessonButton
-                      id={lesson.id}
-                      index={index}
-                      total={unit.lessons.length}
-                      status={isCompleted ? "completed" : isCurrent ? "current" : "locked"}
-                      xOffset={xOffset}
+                      lesson={lesson}
+                      status={status}
                       colorTheme={colors}
-                      isLast={index === unit.lessons.length - 1}
                     />
                   </div>
                 );

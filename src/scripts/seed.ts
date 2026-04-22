@@ -56,7 +56,7 @@ async function seed() {
         {
           id: UNIT_IDS.unit1,
           title: "Dasar Keuangan Mahasiswa",
-          description: "Belajar dasar-dasar mengatur keuangan sebagai mahasiswa: budgeting uang saku, catat pengeluaran, dan prinsip 50/30/20 versi mahasiswa.",
+          description: "Budgeting uang saku & catat pengeluaran harian",
           order_index: 1,
           color_theme: "#7C3AED",
           tags: ["basics", "budgeting", "debt"],
@@ -65,7 +65,7 @@ async function seed() {
         {
           id: UNIT_IDS.unit2,
           title: "Mulai Menabung",
-          description: "Bangun kebiasaan menabung dari nol: emergency fund versi mahasiswa, rekening terpisah, dan tips nabung meski uang saku terbatas.",
+          description: "Bangun dana darurat & kebiasaan menabung",
           order_index: 2,
           color_theme: "#22C55E",
           tags: ["basics", "banking", "savings"],
@@ -74,7 +74,7 @@ async function seed() {
         {
           id: UNIT_IDS.unit3,
           title: "Investasi Pertamamu",
-          description: "Kenali dunia investasi: reksadana pasar uang, konsep bunga majemuk, dan memahami risiko vs return sebelum mulai.",
+          description: "Kenali reksadana & mulai investasi dari nol",
           order_index: 3,
           color_theme: "#F59E0B",
           tags: ["investing", "stocks", "property"],
