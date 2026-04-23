@@ -30,6 +30,17 @@ export interface LearningPathData {
   error?: string;
 }
 
+export interface CompleteLessonResult {
+  success: boolean;
+  xpEarned: number;
+  coinsEarned: number;
+  leveledUp: boolean;
+  newLevel: number;
+  newMaxHearts: number;
+  newStreak: number;
+  error?: string;
+}
+
 // ── Tag Mapping untuk Personalisasi ───────────────────────
 
 const GOAL_TAG_MAP: Record<string, string[]> = {
@@ -104,7 +115,7 @@ export async function getUnitsWithLessons(): Promise<LearningPathData> {
   const unitsWithLessons: UnitWithLessons[] = unitsData.map((unit) => {
     const unitLessons = lessonsData
       .filter((l) => l.unit_id === unit.id)
-      .slice(0, 3); // Tampilkan max 3 lesson per unit
+      .slice(0, 3);
 
     return {
       ...unit,
@@ -134,7 +145,7 @@ export async function getUnitsWithLessons(): Promise<LearningPathData> {
     const aMatch = hasTagOverlap(a.tags) ? 0 : 1;
     const bMatch = hasTagOverlap(b.tags) ? 0 : 1;
     if (aMatch !== bMatch) return aMatch - bMatch;
-    return a.order_index - b.order_index; // tie-break: order_index asli
+    return a.order_index - b.order_index;
   });
 
   const sortedUnits = [...fundamentals, ...sortedRest];
@@ -185,7 +196,14 @@ export async function getChallengesByLessonId(
 
   if (error || !challenges) return { challenges: [], error: "Failed to fetch challenges" };
 
-  const shuffled = [...challenges].sort(() => Math.random() - 0.5);
+  // Normalisasi options: handle JSONB yang tersimpan sebagai escaped string
+  const normalized = challenges.map((c) => ({
+    ...c,
+    options:
+      typeof c.options === "string" ? JSON.parse(c.options) : c.options,
+  }));
+
+  const shuffled = [...normalized].sort(() => Math.random() - 0.5);
   const shuffledWithOptions = shuffled.map((c) => {
     const options = Array.isArray(c.options) ? c.options : [];
     const shuffledOpts = [...options].sort(() => Math.random() - 0.5);
@@ -195,48 +213,102 @@ export async function getChallengesByLessonId(
   return { challenges: shuffledWithOptions };
 }
 
-interface CompleteLessonResult {
-  newXP: number;
-  newLevel: number;
-  leveledUp: boolean;
-  newMaxHearts: number;
-  coinsEarned: number;
-  error?: string;
-}
-
 export async function completeLesson(
   lessonId: string,
-  totalXP: number
+  xpEarned: number,
+  coinsEarned: number
 ): Promise<CompleteLessonResult> {
   const user = await getCurrentUser();
-  if (!user) return { newXP: 0, newLevel: 1, leveledUp: false, newMaxHearts: 5, coinsEarned: 0, error: "Not authenticated" };
+  if (!user) {
+    return {
+      success: false,
+      xpEarned: 0,
+      coinsEarned: 0,
+      leveledUp: false,
+      newLevel: 1,
+      newMaxHearts: 5,
+      newStreak: 0,
+      error: "Not authenticated",
+    };
+  }
 
   const supabase = await createClient();
 
+  // 1. Fetch profile
   const { data: profile } = await supabase
     .from("profiles")
     .select("xp, coins, streak, last_active_at, timezone")
     .eq("id", user.id)
     .single();
 
-  if (!profile) return { newXP: 0, newLevel: 1, leveledUp: false, newMaxHearts: 5, coinsEarned: 0, error: "Profile not found" };
+  if (!profile) {
+    return {
+      success: false,
+      xpEarned: 0,
+      coinsEarned: 0,
+      leveledUp: false,
+      newLevel: 1,
+      newMaxHearts: 5,
+      newStreak: 0,
+      error: "Profile not found",
+    };
+  }
 
+  // 2. Idempotency check — jika sudah pernah selesai, skip update stats
+  const { data: existingProgress } = await supabase
+    .from("user_progress")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("lesson_id", lessonId)
+    .single();
+
+  const alreadyCompleted = !!existingProgress;
+
+  // 3. Insert ke user_progress (upsert untuk safety)
   const { error: progressError } = await supabase
     .from("user_progress")
     .upsert({ user_id: user.id, lesson_id: lessonId }, { onConflict: "user_id,lesson_id" });
 
-  if (progressError) return { newXP: profile.xp, newLevel: calculateLevel(profile.xp), leveledUp: false, newMaxHearts: calculateMaxHearts(profile.xp), coinsEarned: 0, error: "Failed to save progress" };
+  if (progressError) {
+    return {
+      success: false,
+      xpEarned: 0,
+      coinsEarned: 0,
+      leveledUp: false,
+      newLevel: calculateLevel(profile.xp),
+      newMaxHearts: calculateMaxHearts(profile.xp),
+      newStreak: profile.streak,
+      error: "Failed to save progress",
+    };
+  }
 
+  // 4. Kalau sudah pernah selesai, jangan tambah XP/coins lagi
+  if (alreadyCompleted) {
+    return {
+      success: true,
+      xpEarned: 0,
+      coinsEarned: 0,
+      leveledUp: false,
+      newLevel: calculateLevel(profile.xp),
+      newMaxHearts: calculateMaxHearts(profile.xp),
+      newStreak: profile.streak,
+    };
+  }
+
+  // 5. Hitung level up & streak
   const oldLevel = calculateLevel(profile.xp);
-  const newXP = profile.xp + totalXP;
+  const newXP = profile.xp + xpEarned;
   const newLevel = calculateLevel(newXP);
   const leveledUp = newLevel > oldLevel;
   const newMaxHearts = calculateMaxHearts(newXP);
-  const coinsEarned = 5;
 
-  const streakResult = calculateNewStreak(profile.streak, profile.last_active_at, profile.timezone || "Asia/Jakarta");
+  const streakResult = calculateNewStreak(
+    profile.streak,
+    profile.last_active_at,
+    profile.timezone || "Asia/Jakarta"
+  );
 
-  const updateData: Record<string, any> = {
+  const updateData: Record<string, unknown> = {
     xp: newXP,
     coins: profile.coins + coinsEarned,
     streak: streakResult.newStreak,
@@ -250,30 +322,31 @@ export async function completeLesson(
 
   await supabase.from("profiles").update(updateData).eq("id", user.id);
 
+  // 6. Update quest progress
+  const today = new Date().toISOString().split("T")[0];
+
   const { data: xpQuests } = await supabase
     .from("quests")
     .select("id")
     .eq("type", "XP")
     .eq("is_daily", true);
 
-  const { data: lessonQuests } = await supabase
-    .from("quests")
-    .select("id")
-    .eq("type", "LESSON")
-    .eq("is_daily", true);
-
-  const today = new Date().toISOString().split("T")[0];
-
   if (xpQuests && xpQuests.length > 0) {
     for (const q of xpQuests) {
       await supabase
         .from("user_quests")
         .upsert(
-          { user_id: user.id, quest_id: q.id, assigned_at: today, progress: totalXP },
+          { user_id: user.id, quest_id: q.id, assigned_at: today, progress: xpEarned },
           { onConflict: "user_id,quest_id,assigned_at" }
         );
     }
   }
+
+  const { data: lessonQuests } = await supabase
+    .from("quests")
+    .select("id")
+    .eq("type", "LESSON")
+    .eq("is_daily", true);
 
   if (lessonQuests && lessonQuests.length > 0) {
     const { data: lessonProgress } = await supabase
@@ -295,14 +368,16 @@ export async function completeLesson(
   }
 
   revalidatePath("/learn");
-  revalidatePath("/lesson");
+  revalidatePath("/lesson/[id]", "page");
 
   return {
-    newXP,
-    newLevel,
-    leveledUp,
-    newMaxHearts,
+    success: true,
+    xpEarned,
     coinsEarned,
+    leveledUp,
+    newLevel,
+    newMaxHearts,
+    newStreak: streakResult.newStreak,
   };
 }
 

@@ -6,11 +6,6 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export interface ChallengeOption {
-  text: string;
-  image?: string;
-}
-
 export interface Profile {
   id: string;
   username: string | null;
@@ -55,7 +50,7 @@ export interface Challenge {
   lesson_id: string;
   type: "SELECT" | "ASSIST";
   question: string;
-  options: ChallengeOption[];
+  options: string[];
   correct_answer: string;
   order_index: number;
   is_deleted: boolean;

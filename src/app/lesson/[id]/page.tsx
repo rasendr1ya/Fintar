@@ -1,9 +1,9 @@
 import { getLessonById, getChallengesByLessonId } from "@/features/learning/actions/lessons";
 import { LessonContent } from "@/features/learning/components/LessonContent";
-import { getCurrentProfile } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { getCurrentUser, createClient } from "@/lib/supabase/server";
+import { redirect, notFound } from "next/navigation";
 import { Finny } from "@/components/mascot/Finny";
-import type { Challenge } from "@/types/database";
+import { calculateMaxHearts } from "@/lib/utils";
 
 interface LessonPageProps {
   params: Promise<{ id: string }>;
@@ -11,28 +11,54 @@ interface LessonPageProps {
 
 export default async function LessonPage({ params }: LessonPageProps) {
   const { id } = await params;
-  const profile = await getCurrentProfile();
-  const lesson = await getLessonById(id);
-  const { challenges } = await getChallengesByLessonId(id);
 
+  // 1. Auth check
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect("/login?redirect=/lesson/" + id);
+  }
+
+  // 2. Fetch lesson + challenges + profile in parallel
+  const [lesson, { challenges }, profile] = await Promise.all([
+    getLessonById(id),
+    getChallengesByLessonId(id),
+    (async () => {
+      const supabase = await createClient();
+      const { data } = await supabase
+        .from("profiles")
+        .select("hearts, xp")
+        .eq("id", user.id)
+        .single();
+      return data;
+    })(),
+  ]);
+
+  // 3. Not found
   if (!lesson) {
+    notFound();
+  }
+
+  // 4. No challenges
+  if (!challenges || challenges.length === 0) {
     return (
       <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-4">
         <Finny pose="sad" size={120} />
-        <p className="text-muted mt-4 text-center">Lesson not found</p>
+        <p className="text-muted mt-4 text-center">Belum ada soal untuk pelajaran ini.</p>
       </div>
     );
   }
 
-  if (!challenges || challenges.length === 0) {
-    redirect("/learn");
-  }
+  const initialHearts = profile?.hearts ?? 5;
+  const maxHearts = calculateMaxHearts(profile?.xp ?? 0);
+  const userXp = profile?.xp ?? 0;
 
   return (
     <LessonContent
       lesson={lesson}
-      challenges={challenges as Challenge[]}
-      initialHearts={profile?.hearts ?? 5}
+      challenges={challenges}
+      initialHearts={initialHearts}
+      maxHearts={maxHearts}
+      userXp={userXp}
     />
   );
 }
