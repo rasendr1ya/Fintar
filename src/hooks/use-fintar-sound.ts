@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 
 type SoundType = "correct" | "wrong" | "complete" | "levelup" | "fanfare" | "coin" | "pop" | "click";
 
@@ -16,44 +16,13 @@ const soundFiles: Record<SoundType, string> = {
 };
 
 export function useFintarSound() {
-  const audioRefs = useRef<Record<SoundType, HTMLAudioElement | null>>({
-    correct: null,
-    wrong: null,
-    complete: null,
-    levelup: null,
-    fanfare: null,
-    coin: null,
-    pop: null,
-    click: null,
-  });
-
-  useEffect(() => {
-    Object.entries(soundFiles).forEach(([key, src]) => {
-      const audio = new Audio(src);
-      audio.preload = "auto";
-      audioRefs.current[key as SoundType] = audio;
-    });
-
-    const currentRefs = { ...audioRefs.current };
-
-    return () => {
-      Object.values(currentRefs).forEach((audio) => {
-        if (audio) {
-          audio.pause();
-          audio.src = "";
-        }
-      });
-    };
-  }, []);
-
   const playSound = useCallback((type: SoundType) => {
-    const audio = audioRefs.current[type];
-    if (audio) {
-      audio.currentTime = 0;
-      audio.play().catch(() => {
-        // Ignore autoplay errors
-      });
-    }
+    // Buat Audio element fresh setiap kali — paling reliable
+    // Hindari masalah stale element, loading state, atau interrupted play
+    const audio = new Audio(soundFiles[type]);
+    audio.play().catch(() => {
+      // Ignore autoplay errors atau network hiccup
+    });
   }, []);
 
   const playSequence = useCallback((types: SoundType[], delayMs: number = 300) => {

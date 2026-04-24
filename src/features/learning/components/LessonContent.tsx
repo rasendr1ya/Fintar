@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
 import { useFintarSound } from "@/hooks/use-fintar-sound";
@@ -80,15 +80,12 @@ export function LessonContent({
 
   // ── Handlers ──────────────────────────────────────────────
 
-  const handleSelectAnswer = useCallback(
-    (answer: string) => {
-      if (answerState !== "idle" || isProcessingRef.current) return;
-      setSelectedAnswer(answer);
-    },
-    [answerState]
-  );
+  const handleSelectAnswer = (answer: string) => {
+    if (answerState !== "idle" || isProcessingRef.current) return;
+    setSelectedAnswer(answer);
+  };
 
-  const handleCheckAnswer = useCallback(async () => {
+  const handleCheckAnswer = async () => {
     if (
       !selectedAnswer ||
       !currentChallenge ||
@@ -101,10 +98,10 @@ export function LessonContent({
     const isCorrect = selectedAnswer === currentChallenge.correct_answer;
 
     if (isCorrect) {
+      playCorrect();
       setAnswerState("correct");
       setCorrectlyAnsweredIds((prev) => new Set(prev).add(currentChallenge.id));
       setTotalXpEarned((prev) => prev + 10);
-      playCorrect();
 
       // Auto-advance setelah 1.2 detik
       timeoutRef.current = setTimeout(() => {
@@ -126,8 +123,8 @@ export function LessonContent({
         isProcessingRef.current = false;
       }, 1200);
     } else {
-      setAnswerState("wrong");
       playWrong();
+      setAnswerState("wrong");
 
       // Reduce hearts via server action
       const result = await reduceHearts();
@@ -148,19 +145,9 @@ export function LessonContent({
         }, 1200);
       }
     }
-  }, [
-    selectedAnswer,
-    currentChallenge,
-    answerState,
-    currentIndex,
-    totalChallenges,
-    hearts,
-    playCorrect,
-    playWrong,
-    playComplete,
-  ]);
+  };
 
-  const handleFinishLesson = useCallback(async () => {
+  const handleFinishLesson = async () => {
     if (hasCompletedRef.current) return;
     hasCompletedRef.current = true;
     setIsCompleting(true);
@@ -177,19 +164,19 @@ export function LessonContent({
     }
 
     setIsCompleting(false);
-  }, [lesson.id, totalXpEarned, router]);
+  };
 
-  const handleLevelUpClose = useCallback(() => {
+  const handleLevelUpClose = () => {
     router.push("/learn");
-  }, [router]);
+  };
 
-  const handleExit = useCallback(() => {
+  const handleExit = () => {
     if (correctlyAnsweredIds.size === 0 && answerState === "idle") {
       router.push("/learn");
     } else {
       setShowExitConfirm(true);
     }
-  }, [correctlyAnsweredIds.size, answerState, router]);
+  };
 
   // ── Render Helpers ────────────────────────────────────────
 

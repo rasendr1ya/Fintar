@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircleIcon, StarIcon, LockClosedIcon } from "@heroicons/react/24/solid";
+import { CheckIcon, StarIcon, LockClosedIcon } from "@heroicons/react/24/solid";
 import { LessonInPath } from "@/features/learning/actions/lessons";
 
 interface LessonButtonProps {
@@ -18,10 +18,10 @@ export function LessonButton({ lesson, status, colorTheme }: LessonButtonProps) 
   let shadowColor = "";
 
   if (status === "completed") {
-    // Golden Coin Style for Completed
-    buttonStyle = "bg-gradient-to-b from-amber-300 to-amber-500 border-amber-600 text-amber-900";
+    // Golden amber circle with simple white checkmark (prototype style)
+    buttonStyle = "bg-amber-400 border-amber-600 text-white";
     shadowColor = "shadow-[0_4px_0_#d97706]"; // Amber-600 shadow
-    icon = <CheckCircleIcon className="w-8 h-8 drop-shadow-sm" />;
+    icon = <CheckIcon className="w-8 h-8 text-black drop-shadow-sm" />;
   } else if (status === "current") {
     // Vibrant Theme Gem Style for Current
     if (colorTheme.isHex) {
