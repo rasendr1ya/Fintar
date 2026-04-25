@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import confetti from "canvas-confetti";
 import { Finny } from "@/components/mascot/Finny";
 import { Button } from "@/components/ui/Button";
@@ -18,37 +18,7 @@ export function LevelUpModal({ newLevel, onClose }: LevelUpModalProps) {
   const [showButton, setShowButton] = useState(false);
   const { playLevelUp, playSound, playCoin } = useFintarSound();
 
-  // Staggered animations and sounds
-  useEffect(() => {
-    // Play level up sound immediately
-    playLevelUp();
-    
-    // Fire epic confetti burst
-    fireConfetti();
-    
-    // Stagger content appearance for dramatic effect
-    const contentTimer = setTimeout(() => {
-      setShowContent(true);
-      playSound("fanfare");
-    }, 300);
-    
-    const rewardsTimer = setTimeout(() => {
-      setShowRewards(true);
-      playCoin();
-    }, 800);
-    
-    const buttonTimer = setTimeout(() => {
-      setShowButton(true);
-    }, 1200);
-
-    return () => {
-      clearTimeout(contentTimer);
-      clearTimeout(rewardsTimer);
-      clearTimeout(buttonTimer);
-    };
-  }, [playLevelUp, playCoin]);
-
-  const fireConfetti = () => {
+  const fireConfetti = useCallback(() => {
     const duration = 4000;
     const end = Date.now() + duration;
 
@@ -115,7 +85,37 @@ export function LevelUpModal({ newLevel, onClose }: LevelUpModalProps) {
         colors: ["#FFD700", "#FFC107"],
       });
     }, 1500);
-  };
+  }, []);
+
+  // Staggered animations and sounds
+  useEffect(() => {
+    // Play level up sound immediately
+    playLevelUp();
+
+    // Fire epic confetti burst
+    fireConfetti();
+
+    // Stagger content appearance for dramatic effect
+    const contentTimer = setTimeout(() => {
+      setShowContent(true);
+      playSound("fanfare");
+    }, 300);
+
+    const rewardsTimer = setTimeout(() => {
+      setShowRewards(true);
+      playCoin();
+    }, 800);
+
+    const buttonTimer = setTimeout(() => {
+      setShowButton(true);
+    }, 1200);
+
+    return () => {
+      clearTimeout(contentTimer);
+      clearTimeout(rewardsTimer);
+      clearTimeout(buttonTimer);
+    };
+  }, [playLevelUp, playCoin, playSound, fireConfetti]);
 
   const oldMaxHearts = Math.min(15, 5 + (newLevel - 2));
   const newMaxHearts = Math.min(15, 5 + (newLevel - 1));

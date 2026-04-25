@@ -4,6 +4,7 @@ import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { calculateLevel, calculateMaxHearts } from "@/lib/utils";
 import { calculateNewStreak, getHeartsToRefill } from "@/lib/streak";
+import { updateQuestProgress } from "@/features/quests/actions";
 import type { Challenge, UserProgress } from "@/types/database";
 
 // ── Types ──────────────────────────────────────────────────
@@ -35,9 +36,13 @@ export interface CompleteLessonResult {
   xpEarned: number;
   coinsEarned: number;
   leveledUp: boolean;
+  didLevelUp: boolean;
   newLevel: number;
   newMaxHearts: number;
+  newHearts: number;
   newStreak: number;
+  newXp: number;
+  newCoins: number;
   error?: string;
 }
 
@@ -225,9 +230,13 @@ export async function completeLesson(
       xpEarned: 0,
       coinsEarned: 0,
       leveledUp: false,
+      didLevelUp: false,
       newLevel: 1,
       newMaxHearts: 5,
+      newHearts: 5,
       newStreak: 0,
+      newXp: 0,
+      newCoins: 0,
       error: "Not authenticated",
     };
   }
@@ -237,7 +246,7 @@ export async function completeLesson(
   // 1. Fetch profile
   const { data: profile } = await supabase
     .from("profiles")
-    .select("xp, coins, streak, last_active_at, timezone")
+    .select("xp, coins, hearts, streak, last_active_at, timezone")
     .eq("id", user.id)
     .single();
 
@@ -247,9 +256,13 @@ export async function completeLesson(
       xpEarned: 0,
       coinsEarned: 0,
       leveledUp: false,
+      didLevelUp: false,
       newLevel: 1,
       newMaxHearts: 5,
+      newHearts: 5,
       newStreak: 0,
+      newXp: 0,
+      newCoins: 0,
       error: "Profile not found",
     };
   }
@@ -260,26 +273,37 @@ export async function completeLesson(
     .select("id")
     .eq("user_id", user.id)
     .eq("lesson_id", lessonId)
-    .single();
+    .maybeSingle();
 
   const alreadyCompleted = !!existingProgress;
 
-  // 3. Insert ke user_progress (upsert untuk safety)
-  const { error: progressError } = await supabase
-    .from("user_progress")
-    .upsert({ user_id: user.id, lesson_id: lessonId }, { onConflict: "user_id,lesson_id" });
+  // 3. Insert ke user_progress hanya jika belum pernah selesai
+  if (!alreadyCompleted) {
+    const { error: insertError } = await supabase
+      .from("user_progress")
+      .insert({
+        user_id: user.id,
+        lesson_id: lessonId,
+        completed_at: new Date().toISOString(),
+      });
 
-  if (progressError) {
-    return {
-      success: false,
-      xpEarned: 0,
-      coinsEarned: 0,
-      leveledUp: false,
-      newLevel: calculateLevel(profile.xp),
-      newMaxHearts: calculateMaxHearts(profile.xp),
-      newStreak: profile.streak,
-      error: "Failed to save progress",
-    };
+    if (insertError && insertError.code !== "23505") {
+      console.error("Error inserting user_progress:", insertError);
+      return {
+        success: false,
+        xpEarned: 0,
+        coinsEarned: 0,
+        leveledUp: false,
+        didLevelUp: false,
+        newLevel: calculateLevel(profile.xp),
+        newMaxHearts: calculateMaxHearts(profile.xp),
+        newHearts: profile.hearts,
+        newStreak: profile.streak,
+        newXp: profile.xp,
+        newCoins: profile.coins,
+        error: "Failed to save progress",
+      };
+    }
   }
 
   // 4. Kalau sudah pernah selesai, jangan tambah XP/coins lagi
@@ -289,9 +313,13 @@ export async function completeLesson(
       xpEarned: 0,
       coinsEarned: 0,
       leveledUp: false,
+      didLevelUp: false,
       newLevel: calculateLevel(profile.xp),
       newMaxHearts: calculateMaxHearts(profile.xp),
+      newHearts: profile.hearts,
       newStreak: profile.streak,
+      newXp: profile.xp,
+      newCoins: profile.coins,
     };
   }
 
@@ -322,49 +350,13 @@ export async function completeLesson(
 
   await supabase.from("profiles").update(updateData).eq("id", user.id);
 
-  // 6. Update quest progress
-  const today = new Date().toISOString().split("T")[0];
-
-  const { data: xpQuests } = await supabase
-    .from("quests")
-    .select("id")
-    .eq("type", "XP")
-    .eq("is_daily", true);
-
-  if (xpQuests && xpQuests.length > 0) {
-    for (const q of xpQuests) {
-      await supabase
-        .from("user_quests")
-        .upsert(
-          { user_id: user.id, quest_id: q.id, assigned_at: today, progress: xpEarned },
-          { onConflict: "user_id,quest_id,assigned_at" }
-        );
-    }
-  }
-
-  const { data: lessonQuests } = await supabase
-    .from("quests")
-    .select("id")
-    .eq("type", "LESSON")
-    .eq("is_daily", true);
-
-  if (lessonQuests && lessonQuests.length > 0) {
-    const { data: lessonProgress } = await supabase
-      .from("user_progress")
-      .select("id")
-      .eq("user_id", user.id)
-      .gte("completed_at", `${today}T00:00:00`);
-
-    const lessonsToday = lessonProgress?.length || 0;
-
-    for (const q of lessonQuests) {
-      await supabase
-        .from("user_quests")
-        .upsert(
-          { user_id: user.id, quest_id: q.id, assigned_at: today, progress: lessonsToday },
-          { onConflict: "user_id,quest_id,assigned_at" }
-        );
-    }
+  // 6. Update quest progress (non-blocking, wrap in try-catch)
+  try {
+    await updateQuestProgress("LESSON", 1);
+    await updateQuestProgress("XP", xpEarned);
+  } catch (questErr) {
+    console.error("Error updating quest progress:", questErr);
+    // Don't fail the whole lesson completion if quests fail
   }
 
   revalidatePath("/learn");
@@ -375,9 +367,13 @@ export async function completeLesson(
     xpEarned,
     coinsEarned,
     leveledUp,
+    didLevelUp: leveledUp,
     newLevel,
     newMaxHearts,
+    newHearts: leveledUp ? newMaxHearts : profile.hearts,
     newStreak: streakResult.newStreak,
+    newXp: newXP,
+    newCoins: profile.coins + coinsEarned,
   };
 }
 
@@ -402,6 +398,7 @@ export async function reduceHearts(): Promise<{ hearts: number; error?: string }
     .update({ hearts: newHearts })
     .eq("id", user.id);
 
+  revalidatePath("/lesson/[id]", "page");
   return { hearts: newHearts };
 }
 

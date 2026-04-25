@@ -33,15 +33,15 @@ export function useFintarSound() {
     });
   }, [playSound]);
 
-  const triggerHaptic = useCallback(() => {
+  const triggerHaptic = useCallback((pattern: number | number[] = 50) => {
     if (typeof navigator !== "undefined" && navigator.vibrate) {
-      navigator.vibrate(50);
+      navigator.vibrate(pattern);
     }
   }, []);
 
-  const playWithHaptic = useCallback((type: SoundType) => {
+  const playWithHaptic = useCallback((type: SoundType, pattern?: number | number[]) => {
     playSound(type);
-    triggerHaptic();
+    triggerHaptic(pattern);
   }, [playSound, triggerHaptic]);
 
   return {
@@ -49,8 +49,8 @@ export function useFintarSound() {
     playSequence,
     triggerHaptic,
     playWithHaptic,
-    playCorrect: () => playWithHaptic("correct"),
-    playWrong: () => playWithHaptic("wrong"),
+    playCorrect: () => playWithHaptic("correct", 100),
+    playWrong: () => playWithHaptic("wrong", [100, 50, 100]),
     playComplete: () => playSound("complete"),
     playLevelUp: () => playSequence(["levelup", "fanfare"], 400),
     playCoin: () => playSound("coin"),

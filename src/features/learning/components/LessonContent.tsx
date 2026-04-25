@@ -19,6 +19,8 @@ import {
   ArrowLeftIcon,
 } from "@heroicons/react/24/solid";
 
+type Phase = "IDLE" | "CORRECT" | "WRONG" | "GAME_OVER" | "COMPLETE";
+
 interface LessonContentProps {
   lesson: Lesson;
   challenges: Challenge[];
@@ -32,26 +34,20 @@ export function LessonContent({
   challenges,
   initialHearts,
   maxHearts,
-  userXp,
 }: LessonContentProps) {
   const router = useRouter();
-  const { playCorrect, playWrong, playComplete } = useFintarSound();
+  const { playSound, playWithHaptic, triggerHaptic } = useFintarSound();
 
   // ── Core State ────────────────────────────────────────────
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [correctlyAnsweredIds, setCorrectlyAnsweredIds] = useState<Set<string>>(
-    new Set()
-  );
+  const [answeredCorrectly, setAnsweredCorrectly] = useState<Set<string>>(new Set());
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [answerState, setAnswerState] = useState<"idle" | "correct" | "wrong">(
-    "idle"
-  );
+  const [phase, setPhase] = useState<Phase>(initialHearts <= 0 ? "GAME_OVER" : "IDLE");
   const [hearts, setHearts] = useState(initialHearts);
-  const [isGameOver, setIsGameOver] = useState(initialHearts <= 0);
-  const [isLessonComplete, setIsLessonComplete] = useState(false);
-  const [totalXpEarned, setTotalXpEarned] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showErrorRetry, setShowErrorRetry] = useState(false);
+  const [heartAnimKey, setHeartAnimKey] = useState(0);
 
   // Level up
   const [levelUpData, setLevelUpData] = useState<{
@@ -68,7 +64,7 @@ export function LessonContent({
   const totalChallenges = challenges.length;
   const progress =
     totalChallenges > 0
-      ? (correctlyAnsweredIds.size / totalChallenges) * 100
+      ? (answeredCorrectly.size / totalChallenges) * 100
       : 0;
 
   // Cleanup timeouts on unmount
@@ -81,7 +77,7 @@ export function LessonContent({
   // ── Handlers ──────────────────────────────────────────────
 
   const handleSelectAnswer = (answer: string) => {
-    if (answerState !== "idle" || isProcessingRef.current) return;
+    if (phase !== "IDLE" || isProcessingRef.current) return;
     setSelectedAnswer(answer);
   };
 
@@ -89,7 +85,7 @@ export function LessonContent({
     if (
       !selectedAnswer ||
       !currentChallenge ||
-      answerState !== "idle" ||
+      phase !== "IDLE" ||
       isProcessingRef.current
     )
       return;
@@ -98,17 +94,16 @@ export function LessonContent({
     const isCorrect = selectedAnswer === currentChallenge.correct_answer;
 
     if (isCorrect) {
-      playCorrect();
-      setAnswerState("correct");
-      setCorrectlyAnsweredIds((prev) => new Set(prev).add(currentChallenge.id));
-      setTotalXpEarned((prev) => prev + 10);
+      playWithHaptic("correct");
+      setPhase("CORRECT");
+      setAnsweredCorrectly((prev) => new Set(prev).add(currentChallenge.id));
 
-      // Auto-advance setelah 1.2 detik
+      // Auto-advance setelah 300ms
       timeoutRef.current = setTimeout(() => {
         const nextIndex = currentIndex + 1;
         if (nextIndex >= totalChallenges) {
-          setIsLessonComplete(true);
-          playComplete();
+          setPhase("COMPLETE");
+          playSound("complete");
           confetti({
             particleCount: 100,
             spread: 70,
@@ -118,31 +113,36 @@ export function LessonContent({
         } else {
           setCurrentIndex(nextIndex);
           setSelectedAnswer(null);
-          setAnswerState("idle");
+          setPhase("IDLE");
         }
         isProcessingRef.current = false;
-      }, 1200);
+      }, 300);
     } else {
-      playWrong();
-      setAnswerState("wrong");
+      playWithHaptic("wrong");
+      setPhase("WRONG");
 
-      // Reduce hearts via server action
-      const result = await reduceHearts();
-      const newHearts = result.hearts ?? Math.max(hearts - 1, 0);
-      setHearts(newHearts);
+      // Reduce hearts optimistic + animate
+      const optimisticHearts = Math.max(hearts - 1, 0);
+      setHearts(optimisticHearts);
+      setHeartAnimKey((k) => k + 1);
 
-      if (newHearts <= 0) {
+      // Reduce hearts via server action (fire and forget)
+      reduceHearts().catch(() => {
+        // Ignore server error, keep optimistic update
+      });
+
+      if (optimisticHearts <= 0) {
         timeoutRef.current = setTimeout(() => {
-          setIsGameOver(true);
+          setPhase("GAME_OVER");
           isProcessingRef.current = false;
-        }, 1200);
+        }, 800);
       } else {
-        // Auto-reset setelah 1.2 detik
+        // Auto-reset setelah 800ms
         timeoutRef.current = setTimeout(() => {
           setSelectedAnswer(null);
-          setAnswerState("idle");
+          setPhase("IDLE");
           isProcessingRef.current = false;
-        }, 1200);
+        }, 800);
       }
     }
   };
@@ -151,14 +151,25 @@ export function LessonContent({
     if (hasCompletedRef.current) return;
     hasCompletedRef.current = true;
     setIsCompleting(true);
+    setShowErrorRetry(false);
 
-    const result = await completeLesson(lesson.id, totalXpEarned, 5);
+    const xpEarned = answeredCorrectly.size * 10;
+    const result = await completeLesson(lesson.id, xpEarned, 5);
 
-    if (result.leveledUp) {
+    if (!result.success) {
+      hasCompletedRef.current = false;
+      setIsCompleting(false);
+      setShowErrorRetry(true);
+      return;
+    }
+
+    if (result.didLevelUp) {
       setLevelUpData({
         newLevel: result.newLevel,
         newMaxHearts: result.newMaxHearts,
       });
+      triggerHaptic(300);
+      // Sound levelup + fanfare di-handle oleh LevelUpModal sendiri
     } else {
       router.push("/learn");
     }
@@ -171,7 +182,7 @@ export function LessonContent({
   };
 
   const handleExit = () => {
-    if (correctlyAnsweredIds.size === 0 && answerState === "idle") {
+    if (answeredCorrectly.size === 0 && phase === "IDLE") {
       router.push("/learn");
     } else {
       setShowExitConfirm(true);
@@ -181,7 +192,7 @@ export function LessonContent({
   // ── Render Helpers ────────────────────────────────────────
 
   // Game Over Screen
-  if (isGameOver) {
+  if (phase === "GAME_OVER") {
     return (
       <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-6 py-8">
         <div className="text-center max-w-sm w-full">
@@ -189,25 +200,28 @@ export function LessonContent({
             <Finny pose="sad" size={140} />
           </div>
           <h1 className="text-3xl font-extrabold text-text mb-3">
-            Hearts Habis!
+            Nyawa habis! 💔
           </h1>
           <p className="text-muted mb-8 leading-relaxed">
-            Kamu terlalu banyak salah. Latihan membuat sempurna! Tunggu hearts
-            terisi ulang atau beli di shop.
+            Tunggu 1 jam untuk +1 nyawa, atau beli di Toko
           </p>
 
           <div className="space-y-3">
             <Button onClick={() => router.push("/shop")} fullWidth>
-              <ShoppingBagIcon className="w-5 h-5 mr-2" />
-              Ke Shop
+              <span className="flex items-center justify-center gap-2">
+                <ShoppingBagIcon className="w-5 h-5" />
+                Ke Toko
+              </span>
             </Button>
             <Button
               variant="outline"
               onClick={() => router.push("/learn")}
               fullWidth
             >
-              <ArrowLeftIcon className="w-5 h-5 mr-2" />
-              Kembali ke Learn
+              <span className="flex items-center justify-center gap-2">
+                <ArrowLeftIcon className="w-5 h-5" />
+                Kembali
+              </span>
             </Button>
           </div>
         </div>
@@ -216,8 +230,9 @@ export function LessonContent({
   }
 
   // Lesson Complete Screen
-  if (isLessonComplete) {
-    const isPerfect = correctlyAnsweredIds.size === totalChallenges;
+  if (phase === "COMPLETE") {
+    const isPerfect = answeredCorrectly.size === totalChallenges;
+    const xpEarned = answeredCorrectly.size * 10;
 
     return (
       <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-6 py-8">
@@ -227,12 +242,12 @@ export function LessonContent({
           </div>
 
           <h1 className="text-3xl font-extrabold text-text mb-2">
-            {isPerfect ? "Sempurna!" : "Pelajaran Selesai!"}
+            {isPerfect ? "Sempurna!" : "Lesson Selesai! 🎉"}
           </h1>
           <p className="text-muted mb-8">
             {isPerfect
               ? "Semua benar di percobaan pertama! Keren banget!"
-              : `Kamu menyelesaikan pelajaran dengan ${totalChallenges - correctlyAnsweredIds.size} kesalahan.`}
+              : `Kamu menyelesaikan pelajaran dengan ${totalChallenges - answeredCorrectly.size} kesalahan.`}
           </p>
 
           {/* Rewards */}
@@ -241,7 +256,7 @@ export function LessonContent({
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1 text-xp mb-1">
                   <SparklesIcon className="w-6 h-6" />
-                  <span className="text-2xl font-extrabold">+{totalXpEarned}</span>
+                  <span className="text-2xl font-extrabold">+{xpEarned}</span>
                 </div>
                 <span className="text-xs font-semibold text-muted uppercase tracking-wide">
                   XP
@@ -260,13 +275,19 @@ export function LessonContent({
             </div>
           </div>
 
+          {showErrorRetry && (
+            <div className="bg-hearts/10 border border-hearts/20 rounded-2xl p-4 mb-4 text-sm text-hearts font-medium">
+              Gagal menyimpan progress. Silakan coba lagi.
+            </div>
+          )}
+
           <Button
             onClick={handleFinishLesson}
             disabled={isCompleting}
             fullWidth
             size="lg"
           >
-            {isCompleting ? "Menyimpan..." : "Lanjut"}
+            {isCompleting ? "Menyimpan..." : "Kembali ke Jalur Belajar"}
           </Button>
         </div>
 
@@ -306,7 +327,10 @@ export function LessonContent({
           </div>
 
           {/* Hearts */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div
+            key={heartAnimKey}
+            className={`flex items-center gap-1.5 shrink-0 ${phase === "WRONG" ? "animate-wiggle" : ""}`}
+          >
             <HeartIcon className="w-6 h-6 text-hearts" />
             <span className="font-bold text-text">
               {hearts}
@@ -343,22 +367,19 @@ export function LessonContent({
             let icon = null;
             let shakeClass = "";
 
-            if (answerState === "correct") {
+            if (phase === "CORRECT") {
               if (isCorrectOption) {
                 borderColor = "border-success";
                 bgColor = "bg-success/10";
                 textColor = "text-success";
                 ringBadge = "bg-success text-white";
                 icon = <CheckCircleIcon className="w-6 h-6 text-success shrink-0" />;
-              } else if (isSelected) {
-                // Shouldn't happen if correct, but just in case
-                borderColor = "border-success";
-                bgColor = "bg-success/10";
               } else {
                 borderColor = "border-border";
                 bgColor = "bg-white";
+                textColor = "text-muted";
               }
-            } else if (answerState === "wrong") {
+            } else if (phase === "WRONG") {
               if (isSelected) {
                 borderColor = "border-hearts";
                 bgColor = "bg-hearts/10";
@@ -379,7 +400,7 @@ export function LessonContent({
                 ringBadge = "bg-slate-100 text-muted";
               }
             } else {
-              // idle
+              // IDLE
               if (isSelected) {
                 borderColor = "border-primary";
                 bgColor = "bg-primary-50";
@@ -391,12 +412,12 @@ export function LessonContent({
               <button
                 key={`${currentChallenge.id}-${index}`}
                 onClick={() => handleSelectAnswer(option)}
-                disabled={answerState !== "idle"}
+                disabled={phase !== "IDLE"}
                 className={`
                   w-full p-4 rounded-2xl border-2 text-left transition-all duration-200
                   ${borderColor} ${bgColor} ${textColor} ${shakeClass}
                   ${
-                    answerState === "idle"
+                    phase === "IDLE"
                       ? "hover:border-primary/50 hover:shadow-card-hover active:scale-[0.98]"
                       : ""
                   }
@@ -423,35 +444,35 @@ export function LessonContent({
         </div>
 
         {/* Feedback Banner */}
-        {answerState !== "idle" && (
+        {phase !== "IDLE" && (
           <div
             className={`
-              mt-6 p-4 rounded-2xl flex items-center gap-4
+              mt-6 p-4 rounded-2xl flex items-center gap-4 animate-bounce-subtle
               ${
-                answerState === "correct"
+                phase === "CORRECT"
                   ? "bg-success/10 border border-success/20"
                   : "bg-hearts/10 border border-hearts/20"
               }
             `}
           >
             <Finny
-              pose={answerState === "correct" ? "celebrate" : "sad"}
+              pose={phase === "CORRECT" ? "celebrate" : "sad"}
               size={56}
             />
             <div className="flex-1">
               <p
                 className={`font-bold ${
-                  answerState === "correct" ? "text-success" : "text-hearts"
+                  phase === "CORRECT" ? "text-success" : "text-hearts"
                 }`}
               >
-                {answerState === "correct"
-                  ? "Benar! Keren!"
-                  : "Belum tepat, coba lagi!"}
+                {phase === "CORRECT"
+                  ? "✓ Benar!"
+                  : "✗ Jawaban salah. Coba lagi!"}
               </p>
               <p className="text-sm text-muted">
-                {answerState === "correct"
+                {phase === "CORRECT"
                   ? "+10 XP"
-                  : "Hearts berkurang 1"}
+                  : "Nyawa berkurang 1"}
               </p>
             </div>
           </div>
@@ -461,7 +482,7 @@ export function LessonContent({
       {/* ── Bottom Action Bar ─────────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border safe-bottom z-20">
         <div className="max-w-lg mx-auto px-4 py-4">
-          {answerState === "idle" ? (
+          {phase === "IDLE" ? (
             <Button
               fullWidth
               size="lg"
@@ -470,7 +491,7 @@ export function LessonContent({
             >
               Periksa
             </Button>
-          ) : answerState === "correct" ? (
+          ) : phase === "CORRECT" ? (
             <Button
               fullWidth
               size="lg"
@@ -480,8 +501,8 @@ export function LessonContent({
                 if (timeoutRef.current) clearTimeout(timeoutRef.current);
                 const nextIndex = currentIndex + 1;
                 if (nextIndex >= totalChallenges) {
-                  setIsLessonComplete(true);
-                  playComplete();
+                  setPhase("COMPLETE");
+                  playSound("complete");
                   confetti({
                     particleCount: 100,
                     spread: 70,
@@ -491,7 +512,7 @@ export function LessonContent({
                 } else {
                   setCurrentIndex(nextIndex);
                   setSelectedAnswer(null);
-                  setAnswerState("idle");
+                  setPhase("IDLE");
                 }
                 isProcessingRef.current = false;
               }}
@@ -534,14 +555,6 @@ export function LessonContent({
             </div>
           </div>
         </div>
-      )}
-
-      {/* ── Level Up Modal ────────────────────────────────── */}
-      {levelUpData && (
-        <LevelUpModal
-          newLevel={levelUpData.newLevel}
-          onClose={handleLevelUpClose}
-        />
       )}
     </div>
   );
