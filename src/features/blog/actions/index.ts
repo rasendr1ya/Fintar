@@ -44,9 +44,9 @@ export async function getArticleBySlug(slug: string) {
     .eq("slug", slug)
     .eq("is_published", true)
     .eq("is_deleted", false)
-    .single();
+    .maybeSingle();
 
-  if (error) return null;
+  if (error || !data) return null;
 
   return data as Article | null;
 }

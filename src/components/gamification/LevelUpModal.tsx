@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import confetti from "canvas-confetti";
 import { Finny } from "@/components/mascot/Finny";
 import { Button } from "@/components/ui/Button";
@@ -9,14 +9,18 @@ import { useFintarSound } from "@/hooks/use-fintar-sound";
 
 interface LevelUpModalProps {
   newLevel: number;
+  oldMaxHearts: number;
+  newMaxHearts: number;
   onClose: () => void;
 }
 
-export function LevelUpModal({ newLevel, onClose }: LevelUpModalProps) {
+export function LevelUpModal({ newLevel, oldMaxHearts, newMaxHearts, onClose }: LevelUpModalProps) {
   const [showContent, setShowContent] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
   const [showButton, setShowButton] = useState(false);
   const { playLevelUp, playSound, playCoin } = useFintarSound();
+  const rafIdRef = useRef<number | null>(null);
+  const timeoutIdsRef = useRef<number[]>([]);
 
   const fireConfetti = useCallback(() => {
     const duration = 4000;
@@ -48,43 +52,49 @@ export function LevelUpModal({ newLevel, onClose }: LevelUpModalProps) {
       });
 
       if (Date.now() < end) {
-        requestAnimationFrame(frame);
+        rafIdRef.current = requestAnimationFrame(frame);
       }
     };
 
-    frame();
+    rafIdRef.current = requestAnimationFrame(frame);
 
     // Bonus firework bursts
-    setTimeout(() => {
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { x: 0.3, y: 0.5 },
-        colors: ["#22C55E", "#4ADE80"],
-      });
-    }, 500);
+    timeoutIdsRef.current.push(
+      window.setTimeout(() => {
+        confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: { x: 0.3, y: 0.5 },
+          colors: ["#22C55E", "#4ADE80"],
+        });
+      }, 500)
+    );
 
-    setTimeout(() => {
-      confetti({
-        particleCount: 50,
-        spread: 60,
-        origin: { x: 0.7, y: 0.5 },
-        colors: ["#3B82F6", "#60A5FA"],
-      });
-    }, 1000);
+    timeoutIdsRef.current.push(
+      window.setTimeout(() => {
+        confetti({
+          particleCount: 50,
+          spread: 60,
+          origin: { x: 0.7, y: 0.5 },
+          colors: ["#3B82F6", "#60A5FA"],
+        });
+      }, 1000)
+    );
 
     // Star shower
-    setTimeout(() => {
-      confetti({
-        particleCount: 30,
-        spread: 180,
-        origin: { y: 0 },
-        gravity: 0.8,
-        scalar: 1.2,
-        shapes: ["star"],
-        colors: ["#FFD700", "#FFC107"],
-      });
-    }, 1500);
+    timeoutIdsRef.current.push(
+      window.setTimeout(() => {
+        confetti({
+          particleCount: 30,
+          spread: 180,
+          origin: { y: 0 },
+          gravity: 0.8,
+          scalar: 1.2,
+          shapes: ["star"],
+          colors: ["#FFD700", "#FFC107"],
+        });
+      }, 1500)
+    );
   }, []);
 
   // Staggered animations and sounds
@@ -114,11 +124,13 @@ export function LevelUpModal({ newLevel, onClose }: LevelUpModalProps) {
       clearTimeout(contentTimer);
       clearTimeout(rewardsTimer);
       clearTimeout(buttonTimer);
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+      timeoutIdsRef.current.forEach((id) => clearTimeout(id));
+      timeoutIdsRef.current = [];
     };
   }, [playLevelUp, playCoin, playSound, fireConfetti]);
-
-  const oldMaxHearts = Math.min(15, 5 + (newLevel - 2));
-  const newMaxHearts = Math.min(15, 5 + (newLevel - 1));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">

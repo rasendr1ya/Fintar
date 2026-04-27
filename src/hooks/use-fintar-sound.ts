@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef, useEffect } from "react";
 
 type SoundType = "correct" | "wrong" | "complete" | "levelup" | "fanfare" | "coin" | "pop" | "click";
 
@@ -16,10 +16,23 @@ const soundFiles: Record<SoundType, string> = {
 };
 
 export function useFintarSound() {
+  const timeoutIdsRef = useRef<number[]>([]);
+
+  useEffect(() => {
+    return () => {
+      timeoutIdsRef.current.forEach((id) => clearTimeout(id));
+      timeoutIdsRef.current = [];
+    };
+  }, []);
+
   const playSound = useCallback((type: SoundType) => {
     // Buat Audio element fresh setiap kali — paling reliable
     // Hindari masalah stale element, loading state, atau interrupted play
     const audio = new Audio(soundFiles[type]);
+    audio.addEventListener("ended", () => {
+      audio.src = "";
+      audio.load();
+    });
     audio.play().catch(() => {
       // Ignore autoplay errors atau network hiccup
     });
@@ -27,9 +40,10 @@ export function useFintarSound() {
 
   const playSequence = useCallback((types: SoundType[], delayMs: number = 300) => {
     types.forEach((type, index) => {
-      setTimeout(() => {
+      const id = window.setTimeout(() => {
         playSound(type);
       }, index * delayMs);
+      timeoutIdsRef.current.push(id);
     });
   }, [playSound]);
 

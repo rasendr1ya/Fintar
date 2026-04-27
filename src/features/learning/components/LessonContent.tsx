@@ -38,6 +38,16 @@ export function LessonContent({
   const router = useRouter();
   const { playSound, playWithHaptic, triggerHaptic } = useFintarSound();
 
+  // ── Shuffle challenges on client (QA-014) ─────────────────
+  const [shuffledChallenges] = useState(() => {
+    const shuffled = [...challenges].sort(() => Math.random() - 0.5);
+    return shuffled.map((c) => {
+      const options = Array.isArray(c.options) ? c.options : [];
+      const shuffledOpts = [...options].sort(() => Math.random() - 0.5);
+      return { ...c, options: shuffledOpts };
+    });
+  });
+
   // ── Core State ────────────────────────────────────────────
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answeredCorrectly, setAnsweredCorrectly] = useState<Set<string>>(new Set());
@@ -52,6 +62,7 @@ export function LessonContent({
   // Level up
   const [levelUpData, setLevelUpData] = useState<{
     newLevel: number;
+    oldMaxHearts: number;
     newMaxHearts: number;
   } | null>(null);
 
@@ -60,17 +71,18 @@ export function LessonContent({
   const hasCompletedRef = useRef(false);
   const isProcessingRef = useRef(false);
 
-  const currentChallenge = challenges[currentIndex];
-  const totalChallenges = challenges.length;
+  const currentChallenge = shuffledChallenges[currentIndex];
+  const totalChallenges = shuffledChallenges.length;
   const progress =
     totalChallenges > 0
       ? (answeredCorrectly.size / totalChallenges) * 100
       : 0;
 
-  // Cleanup timeouts on unmount
+  // Cleanup timeouts and refs on unmount (QA-012)
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      isProcessingRef.current = false;
     };
   }, []);
 
@@ -166,6 +178,7 @@ export function LessonContent({
     if (result.didLevelUp) {
       setLevelUpData({
         newLevel: result.newLevel,
+        oldMaxHearts: maxHearts,
         newMaxHearts: result.newMaxHearts,
       });
       triggerHaptic(300);
@@ -295,6 +308,8 @@ export function LessonContent({
         {levelUpData && (
           <LevelUpModal
             newLevel={levelUpData.newLevel}
+            oldMaxHearts={levelUpData.oldMaxHearts}
+            newMaxHearts={levelUpData.newMaxHearts}
             onClose={handleLevelUpClose}
           />
         )}

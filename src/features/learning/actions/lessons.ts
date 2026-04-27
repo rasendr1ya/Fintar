@@ -35,7 +35,6 @@ export interface CompleteLessonResult {
   success: boolean;
   xpEarned: number;
   coinsEarned: number;
-  leveledUp: boolean;
   didLevelUp: boolean;
   newLevel: number;
   newMaxHearts: number;
@@ -82,7 +81,7 @@ export async function getUnitsWithLessons(): Promise<LearningPathData> {
     .from("profiles")
     .select("financial_goal")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   // 2. Fetch semua units yang aktif
   const { data: unitsData, error: unitsError } = await supabase
@@ -159,15 +158,18 @@ export async function getUnitsWithLessons(): Promise<LearningPathData> {
 }
 
 export async function getLessonById(lessonId: string) {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
   const supabase = await createClient();
 
   const { data: lesson, error } = await supabase
     .from("lessons")
     .select("*")
     .eq("id", lessonId)
-    .single();
+    .maybeSingle();
 
-  if (error) {
+  if (error || !lesson) {
     console.error("Error fetching lesson:", error);
     return null;
   }
@@ -208,14 +210,7 @@ export async function getChallengesByLessonId(
       typeof c.options === "string" ? JSON.parse(c.options) : c.options,
   }));
 
-  const shuffled = [...normalized].sort(() => Math.random() - 0.5);
-  const shuffledWithOptions = shuffled.map((c) => {
-    const options = Array.isArray(c.options) ? c.options : [];
-    const shuffledOpts = [...options].sort(() => Math.random() - 0.5);
-    return { ...c, options: shuffledOpts };
-  });
-
-  return { challenges: shuffledWithOptions };
+  return { challenges: normalized };
 }
 
 export async function completeLesson(
@@ -229,7 +224,6 @@ export async function completeLesson(
       success: false,
       xpEarned: 0,
       coinsEarned: 0,
-      leveledUp: false,
       didLevelUp: false,
       newLevel: 1,
       newMaxHearts: 5,
@@ -255,7 +249,6 @@ export async function completeLesson(
       success: false,
       xpEarned: 0,
       coinsEarned: 0,
-      leveledUp: false,
       didLevelUp: false,
       newLevel: 1,
       newMaxHearts: 5,
@@ -293,7 +286,6 @@ export async function completeLesson(
         success: false,
         xpEarned: 0,
         coinsEarned: 0,
-        leveledUp: false,
         didLevelUp: false,
         newLevel: calculateLevel(profile.xp),
         newMaxHearts: calculateMaxHearts(profile.xp),
@@ -312,7 +304,6 @@ export async function completeLesson(
       success: true,
       xpEarned: 0,
       coinsEarned: 0,
-      leveledUp: false,
       didLevelUp: false,
       newLevel: calculateLevel(profile.xp),
       newMaxHearts: calculateMaxHearts(profile.xp),
@@ -348,7 +339,30 @@ export async function completeLesson(
     updateData.hearts = newMaxHearts;
   }
 
-  await supabase.from("profiles").update(updateData).eq("id", user.id);
+  const { error: updateError } = await supabase.from("profiles").update(updateData).eq("id", user.id);
+
+  if (updateError) {
+    console.error("Error updating profile:", updateError);
+    // Compensating action: hapus user_progress yang baru diinsert
+    await supabase
+      .from("user_progress")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("lesson_id", lessonId);
+    return {
+      success: false,
+      xpEarned: 0,
+      coinsEarned: 0,
+      didLevelUp: false,
+      newLevel: calculateLevel(profile.xp),
+      newMaxHearts: calculateMaxHearts(profile.xp),
+      newHearts: profile.hearts,
+      newStreak: profile.streak,
+      newXp: profile.xp,
+      newCoins: profile.coins,
+      error: "Gagal menyimpan reward",
+    };
+  }
 
   // 6. Update quest progress (non-blocking, wrap in try-catch)
   try {
@@ -366,7 +380,6 @@ export async function completeLesson(
     success: true,
     xpEarned,
     coinsEarned,
-    leveledUp,
     didLevelUp: leveledUp,
     newLevel,
     newMaxHearts,
@@ -393,16 +406,21 @@ export async function reduceHearts(): Promise<{ hearts: number; error?: string }
 
   const newHearts = Math.max(profile.hearts - 1, 0);
 
-  await supabase
+  const { error: updateError } = await supabase
     .from("profiles")
     .update({ hearts: newHearts })
     .eq("id", user.id);
+
+  if (updateError) {
+    console.error("Error reducing hearts:", updateError);
+    return { hearts: profile.hearts, error: "Gagal mengurangi nyawa" };
+  }
 
   revalidatePath("/lesson/[id]", "page");
   return { hearts: newHearts };
 }
 
-export async function checkAndRefillHearts(): Promise<{ hearts: number; maxHearts: number }> {
+export async function checkAndRefillHearts(): Promise<{ hearts: number; maxHearts: number; error?: string }> {
   const user = await getCurrentUser();
   if (!user) return { hearts: 5, maxHearts: 5 };
 
@@ -421,13 +439,18 @@ export async function checkAndRefillHearts(): Promise<{ hearts: number; maxHeart
 
   if (heartsToAdd > 0) {
     const newHearts = Math.min(profile.hearts + heartsToAdd, maxHearts);
-    await supabase
+    const { error: updateError } = await supabase
       .from("profiles")
       .update({
         hearts: newHearts,
         last_heart_refill_at: new Date().toISOString(),
       })
       .eq("id", user.id);
+
+    if (updateError) {
+      console.error("Error refilling hearts:", updateError);
+      return { hearts: profile.hearts, maxHearts, error: "Gagal mengisi ulang nyawa" };
+    }
 
     return { hearts: newHearts, maxHearts };
   }

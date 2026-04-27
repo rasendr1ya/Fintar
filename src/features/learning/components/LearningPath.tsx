@@ -96,11 +96,6 @@ export function LearningPath({ units, completedLessonIds }: LearningPathProps) {
                   firstUncompletedIndex !== -1 &&
                   lessonIndex === firstUncompletedIndex;
 
-                const isLocked =
-                  !isCompleted &&
-                  (firstUncompletedIndex === -1 ||
-                    lessonIndex > firstUncompletedIndex);
-
                 const status: "completed" | "current" | "locked" =
                   isCompleted ? "completed" : isCurrent ? "current" : "locked";
 
