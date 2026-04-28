@@ -2,6 +2,7 @@ import { getCurrentProfile } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { calculateLevel, calculateXPForLevel } from "@/lib/utils";
+import { BASE_HEARTS, MAX_HEARTS_CAP, XP_PER_LEVEL } from "@/lib/constants";
 import { ProfileContent } from "@/features/profile/components/ProfileContent";
 
 export default async function ProfilePage() {
@@ -16,9 +17,8 @@ export default async function ProfilePage() {
     .eq("user_id", profile.id);
 
   const level = calculateLevel(profile.xp);
-  const currentLevelXP = calculateXPForLevel(level);
   const nextLevelXP = calculateXPForLevel(level + 1);
-  const xpProgress = ((profile.xp - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100;
+  const xpProgress = ((profile.xp % XP_PER_LEVEL) / XP_PER_LEVEL) * 100;
 
   return (
     <ProfileContent
@@ -30,7 +30,7 @@ export default async function ProfilePage() {
       streak={profile.streak}
       coins={profile.coins}
       hearts={profile.hearts}
-      maxHearts={Math.min(15, 5 + (level - 1))}
+      maxHearts={Math.min(MAX_HEARTS_CAP, BASE_HEARTS + (level - 1))}
       occupation={profile.occupation}
       financialGoal={profile.financial_goal}
       lessonsCompleted={lessonsCompleted || 0}

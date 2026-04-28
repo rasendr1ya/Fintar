@@ -3,6 +3,7 @@
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { calculateMaxHearts } from "@/lib/utils";
+import { HEART_REFILL_PRICE } from "@/lib/constants";
 
 export async function buyHeartRefill() {
   const user = await getCurrentUser();
@@ -18,21 +19,25 @@ export async function buyHeartRefill() {
 
   if (!profile) return { error: "Profile not found" };
 
-  if (profile.coins < 50) {
-    return { error: "Koin tidak cukup! Kamu butuh 50 koin." };
+  if (profile.coins < HEART_REFILL_PRICE) {
+    return { error: `Koin tidak cukup! Kamu butuh ${HEART_REFILL_PRICE} koin.` };
   }
 
   const maxHearts = calculateMaxHearts(profile.xp);
 
-  const { error: updateError } = await supabase
+  const { data: updatedProfiles, error: updateError } = await supabase
     .from("profiles")
     .update({
-      coins: profile.coins - 50,
+      coins: profile.coins - HEART_REFILL_PRICE,
       hearts: maxHearts,
     })
-    .eq("id", user.id);
+    .eq("id", user.id)
+    .gte("coins", HEART_REFILL_PRICE)
+    .select();
 
-  if (updateError) return { error: "Gagal membeli heart refill" };
+  if (updateError || !updatedProfiles || updatedProfiles.length === 0) {
+    return { error: "Coins tidak cukup atau transaksi duplikat." };
+  }
 
   const { data: heartRefillItem } = await supabase
     .from("shop_items")
@@ -56,7 +61,7 @@ export async function buyHeartRefill() {
 
   return {
     success: true,
-    newCoins: profile.coins - 50,
+    newCoins: profile.coins - HEART_REFILL_PRICE,
     newHearts: maxHearts,
   };
 }

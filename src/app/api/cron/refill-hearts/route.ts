@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { MAX_HEARTS_CAP, BASE_HEARTS, XP_PER_LEVEL } from "@/lib/constants";
 
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
   const { data: profiles, error: fetchError } = await supabase
     .from("profiles")
     .select("id, xp, last_heart_refill_at")
-    .lt("hearts", 15);
+    .lt("hearts", MAX_HEARTS_CAP);
 
   if (fetchError) {
     return NextResponse.json({ error: fetchError.message }, { status: 500 });
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
   let count = 0;
 
   for (const profile of profiles || []) {
-    const maxHearts = Math.min(15, 5 + Math.floor(profile.xp / 100));
+    const maxHearts = Math.min(MAX_HEARTS_CAP, BASE_HEARTS + Math.floor(profile.xp / XP_PER_LEVEL));
 
     const { error: updateError } = await supabase
       .from("profiles")

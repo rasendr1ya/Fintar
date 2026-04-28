@@ -1,21 +1,22 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { XP_PER_LEVEL, BASE_HEARTS, MAX_HEARTS_CAP } from "@/lib/constants";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 export function calculateLevel(xp: number): number {
-  return Math.floor(xp / 100) + 1;
+  return Math.floor(xp / XP_PER_LEVEL) + 1;
 }
 
 export function calculateMaxHearts(xp: number): number {
   const level = calculateLevel(xp);
-  return Math.min(15, 5 + (level - 1));
+  return Math.min(MAX_HEARTS_CAP, BASE_HEARTS + (level - 1));
 }
 
 export function calculateXPForLevel(level: number): number {
-  return (level - 1) * 100;
+  return (level - 1) * XP_PER_LEVEL;
 }
 
 export function formatNumber(num: number): string {

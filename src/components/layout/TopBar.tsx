@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { HeartIcon, FireIcon } from "@heroicons/react/24/solid";
 import { Logo } from "@/components/branding/Logo";
+import { XP_PER_LEVEL, BASE_HEARTS, MAX_HEARTS_CAP } from "@/lib/constants";
 
 interface TopBarProps {
   hearts: number;
@@ -18,8 +19,8 @@ export function TopBar({ hearts, streak, coins, xp = 0, showLogo = true, lastHea
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
 
   // Calculate Max Hearts based on XP
-  const level = Math.floor(xp / 100) + 1;
-  const maxHearts = Math.min(15, 5 + (level - 1));
+  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
+  const maxHearts = Math.min(MAX_HEARTS_CAP, BASE_HEARTS + (level - 1));
 
   useEffect(() => {
     if (hearts >= maxHearts || !lastHeartRefillAt) {

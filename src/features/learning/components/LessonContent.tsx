@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Finny } from "@/components/mascot/Finny";
 import { LevelUpModal } from "@/components/gamification/LevelUpModal";
 import { completeLesson, reduceHearts } from "@/features/learning/actions";
+import { XP_PER_CHALLENGE, COINS_PER_LESSON } from "@/lib/constants";
 import type { Lesson, Challenge } from "@/types/database";
 import {
   HeartIcon,
@@ -165,8 +166,8 @@ export function LessonContent({
     setIsCompleting(true);
     setShowErrorRetry(false);
 
-    const xpEarned = answeredCorrectly.size * 10;
-    const result = await completeLesson(lesson.id, xpEarned, 5);
+    const xpEarned = answeredCorrectly.size * XP_PER_CHALLENGE;
+    const result = await completeLesson(lesson.id, xpEarned, COINS_PER_LESSON);
 
     if (!result.success) {
       hasCompletedRef.current = false;
@@ -245,7 +246,7 @@ export function LessonContent({
   // Lesson Complete Screen
   if (phase === "COMPLETE") {
     const isPerfect = answeredCorrectly.size === totalChallenges;
-    const xpEarned = answeredCorrectly.size * 10;
+    const xpEarned = answeredCorrectly.size * XP_PER_CHALLENGE;
 
     return (
       <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-6 py-8">
@@ -279,7 +280,7 @@ export function LessonContent({
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1 text-coins mb-1">
                   <SparklesIcon className="w-6 h-6" />
-                  <span className="text-2xl font-extrabold">+5</span>
+                  <span className="text-2xl font-extrabold">+{COINS_PER_LESSON}</span>
                 </div>
                 <span className="text-xs font-semibold text-muted uppercase tracking-wide">
                   Koin
@@ -486,7 +487,7 @@ export function LessonContent({
               </p>
               <p className="text-sm text-muted">
                 {phase === "CORRECT"
-                  ? "+10 XP"
+                  ? `+${XP_PER_CHALLENGE} XP`
                   : "Nyawa berkurang 1"}
               </p>
             </div>

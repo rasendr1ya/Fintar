@@ -374,6 +374,8 @@ export async function completeLesson(
   }
 
   revalidatePath("/learn");
+  revalidatePath("/quests");
+  revalidatePath("/leaderboard");
   revalidatePath("/lesson/[id]", "page");
 
   return {

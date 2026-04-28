@@ -84,13 +84,14 @@ export async function updateQuestProgress(type: string, amount: number = 1) {
   for (const quest of quests) {
     const { data: existingUQ } = await supabase
       .from("user_quests")
-      .select("id, progress")
+      .select("id, progress, is_completed")
       .eq("user_id", user.id)
       .eq("quest_id", quest.id)
       .eq("assigned_at", today)
       .single();
 
     if (existingUQ) {
+      if (existingUQ.is_completed) return;
       const { data: questData } = await supabase
         .from("quests")
         .select("target_value")
