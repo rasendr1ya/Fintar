@@ -15,7 +15,7 @@ export async function buyHeartRefill() {
     .from("profiles")
     .select("coins, xp, hearts")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   if (!profile) return { error: "Profile not found" };
 
@@ -30,6 +30,7 @@ export async function buyHeartRefill() {
     .update({
       coins: profile.coins - HEART_REFILL_PRICE,
       hearts: maxHearts,
+      last_heart_refill_at: new Date().toISOString(),
     })
     .eq("id", user.id)
     .gte("coins", HEART_REFILL_PRICE)
@@ -44,7 +45,7 @@ export async function buyHeartRefill() {
     .select("id")
     .eq("type", "HEART_REFILL")
     .eq("is_active", true)
-    .single();
+    .maybeSingle();
 
   if (heartRefillItem) {
     await supabase

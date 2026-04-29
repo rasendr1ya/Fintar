@@ -1,7 +1,8 @@
 import { getShopItems } from "@/features/shop/actions";
 import { getCurrentProfile } from "@/lib/supabase/server";
 import { ShopContent } from "@/features/shop/components/ShopContent";
-import { BASE_HEARTS, MAX_HEARTS_CAP, XP_PER_LEVEL } from "@/lib/constants";
+import { BASE_HEARTS } from "@/lib/constants";
+import { calculateMaxHearts } from "@/lib/utils";
 
 export default async function ShopPage() {
   const [itemsData, profile] = await Promise.all([
@@ -14,7 +15,7 @@ export default async function ShopPage() {
       items={itemsData.items || []}
       coins={profile?.coins ?? 0}
       hearts={profile?.hearts ?? BASE_HEARTS}
-      maxHearts={profile ? Math.min(MAX_HEARTS_CAP, BASE_HEARTS + Math.floor((profile.xp || 0) / XP_PER_LEVEL)) : BASE_HEARTS}
+      maxHearts={profile ? calculateMaxHearts(profile.xp || 0) : BASE_HEARTS}
     />
   );
 }

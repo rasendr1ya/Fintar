@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { HeartIcon, FireIcon } from "@heroicons/react/24/solid";
 import { Logo } from "@/components/branding/Logo";
-import { XP_PER_LEVEL, BASE_HEARTS, MAX_HEARTS_CAP } from "@/lib/constants";
+import { calculateMaxHearts } from "@/lib/utils";
 
 interface TopBarProps {
   hearts: number;
@@ -16,37 +16,33 @@ interface TopBarProps {
 }
 
 export function TopBar({ hearts, streak, coins, xp = 0, showLogo = true, lastHeartRefillAt }: TopBarProps) {
-  const [timeLeft, setTimeLeft] = useState<string | null>(null);
+  // State hanya untuk trigger re-render setiap detik
+  const [tick, setTick] = useState(0);
 
-  // Calculate Max Hearts based on XP
-  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
-  const maxHearts = Math.min(MAX_HEARTS_CAP, BASE_HEARTS + (level - 1));
+  const maxHearts = calculateMaxHearts(xp);
 
   useEffect(() => {
-    if (hearts >= maxHearts || !lastHeartRefillAt) {
-      setTimeLeft(null);
-      return;
-    }
+    if (hearts >= maxHearts || !lastHeartRefillAt) return;
 
-    const calculateTimeLeft = () => {
-      const lastRefill = new Date(lastHeartRefillAt);
-      const nextRefill = new Date(lastRefill.getTime() + 60 * 60 * 1000);
-      const now = new Date();
-      
-      const diff = nextRefill.getTime() - now.getTime();
-      
-      if (diff <= 0) return "00:00"; 
+    const timer = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 1000);
 
-      const minutes = Math.floor((diff / 1000 / 60) % 60);
-      const seconds = Math.floor((diff / 1000) % 60);
-      
-      return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-    };
-
-    setTimeLeft(calculateTimeLeft());
-    const timer = setInterval(() => setTimeLeft(calculateTimeLeft()), 1000);
     return () => clearInterval(timer);
-  }, [hearts, lastHeartRefillAt, maxHearts]);
+  }, [hearts, maxHearts, lastHeartRefillAt]);
+
+  const timeLeft = useMemo(() => {
+    void tick; // dependency untuk trigger re-compute setiap detik
+    if (hearts >= maxHearts || !lastHeartRefillAt) return null;
+    const lastRefill = new Date(lastHeartRefillAt);
+    const nextRefill = new Date(lastRefill.getTime() + 60 * 60 * 1000);
+    const now = new Date();
+    const diff = nextRefill.getTime() - now.getTime();
+    if (diff <= 0) return "00:00";
+    const minutes = Math.floor((diff / 1000 / 60) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  }, [hearts, maxHearts, lastHeartRefillAt, tick]);
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-border">

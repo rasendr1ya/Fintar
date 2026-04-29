@@ -54,7 +54,7 @@ export async function requireAdmin() {
     .from("profiles")
     .select("is_admin")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   if (!profile?.is_admin) {
     throw new Error("Forbidden");
@@ -74,7 +74,7 @@ export async function getCurrentProfile() {
     .from("profiles")
     .select("*")
     .eq("id", user.id)
-    .single();
-    
+    .maybeSingle();
+
   return profile;
 }

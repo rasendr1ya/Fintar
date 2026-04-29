@@ -4,6 +4,7 @@ import { getCurrentUser, createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { Finny } from "@/components/mascot/Finny";
 import { calculateMaxHearts } from "@/lib/utils";
+import { BASE_HEARTS } from "@/lib/constants";
 
 interface LessonPageProps {
   params: Promise<{ id: string }>;
@@ -28,7 +29,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
         .from("profiles")
         .select("hearts, xp")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
       return data;
     })(),
   ]);
@@ -48,7 +49,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
     );
   }
 
-  const initialHearts = profile?.hearts ?? 5;
+  const initialHearts = profile?.hearts ?? BASE_HEARTS;
   const maxHearts = calculateMaxHearts(profile?.xp ?? 0);
   const userXp = profile?.xp ?? 0;
 

@@ -3,7 +3,8 @@
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { calculateLevel, calculateMaxHearts } from "@/lib/utils";
-import { calculateNewStreak, getHeartsToRefill } from "@/lib/streak";
+import { calculateNewStreak } from "@/lib/streak";
+import { BASE_HEARTS } from "@/lib/constants";
 import { updateQuestProgress } from "@/features/quests/actions";
 import type { Challenge, UserProgress } from "@/types/database";
 
@@ -337,6 +338,7 @@ export async function completeLesson(
 
   if (leveledUp) {
     updateData.hearts = newMaxHearts;
+    updateData.last_heart_refill_at = new Date().toISOString();
   }
 
   const { error: updateError } = await supabase.from("profiles").update(updateData).eq("id", user.id);
@@ -424,23 +426,30 @@ export async function reduceHearts(): Promise<{ hearts: number; error?: string }
 
 export async function checkAndRefillHearts(): Promise<{ hearts: number; maxHearts: number; error?: string }> {
   const user = await getCurrentUser();
-  if (!user) return { hearts: 5, maxHearts: 5 };
+  if (!user) return { hearts: BASE_HEARTS, maxHearts: BASE_HEARTS };
 
   const supabase = await createClient();
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("hearts, xp, last_heart_refill_at")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (!profile) return { hearts: 5, maxHearts: 5 };
+  if (profileError || !profile) {
+    return { hearts: BASE_HEARTS, maxHearts: BASE_HEARTS };
+  }
 
   const maxHearts = calculateMaxHearts(profile.xp);
-  const heartsToAdd = getHeartsToRefill(profile.last_heart_refill_at, profile.hearts, maxHearts);
 
-  if (heartsToAdd > 0) {
-    const newHearts = Math.min(profile.hearts + heartsToAdd, maxHearts);
+  // Early return jika sudah penuh
+  if (profile.hearts >= maxHearts) {
+    return { hearts: profile.hearts, maxHearts };
+  }
+
+  // Jika belum pernah refill, lakukan full refill
+  if (!profile.last_heart_refill_at) {
+    const newHearts = maxHearts;
     const { error: updateError } = await supabase
       .from("profiles")
       .update({
@@ -457,5 +466,29 @@ export async function checkAndRefillHearts(): Promise<{ hearts: number; maxHeart
     return { hearts: newHearts, maxHearts };
   }
 
-  return { hearts: profile.hearts, maxHearts };
+  const now = new Date();
+  const lastRefill = new Date(profile.last_heart_refill_at);
+  const hoursElapsed = Math.floor((now.getTime() - lastRefill.getTime()) / (1000 * 60 * 60));
+
+  // Early return jika belum lewat 1 jam
+  if (hoursElapsed === 0) {
+    return { hearts: profile.hearts, maxHearts };
+  }
+
+  const newHearts = Math.min(maxHearts, profile.hearts + hoursElapsed);
+
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({
+      hearts: newHearts,
+      last_heart_refill_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  if (updateError) {
+    console.error("Error refilling hearts:", updateError);
+    return { hearts: profile.hearts, maxHearts, error: "Gagal mengisi ulang nyawa" };
+  }
+
+  return { hearts: newHearts, maxHearts };
 }

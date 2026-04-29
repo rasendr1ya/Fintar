@@ -134,17 +134,13 @@ export function LessonContent({
       playWithHaptic("wrong");
       setPhase("WRONG");
 
-      // Reduce hearts optimistic + animate
-      const optimisticHearts = Math.max(hearts - 1, 0);
-      setHearts(optimisticHearts);
+      // Reduce hearts via server action, lalu sync ke UI
+      const result = await reduceHearts();
+      const newHearts = result.error ? Math.max(hearts - 1, 0) : result.hearts;
+      setHearts(newHearts);
       setHeartAnimKey((k) => k + 1);
 
-      // Reduce hearts via server action (fire and forget)
-      reduceHearts().catch(() => {
-        // Ignore server error, keep optimistic update
-      });
-
-      if (optimisticHearts <= 0) {
+      if (newHearts <= 0) {
         timeoutRef.current = setTimeout(() => {
           setPhase("GAME_OVER");
           isProcessingRef.current = false;
