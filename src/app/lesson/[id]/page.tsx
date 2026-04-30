@@ -27,7 +27,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
       const supabase = await createClient();
       const { data } = await supabase
         .from("profiles")
-        .select("hearts, xp")
+        .select("hearts, xp, streak")
         .eq("id", user.id)
         .maybeSingle();
       return data;
@@ -52,6 +52,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
   const initialHearts = profile?.hearts ?? BASE_HEARTS;
   const maxHearts = calculateMaxHearts(profile?.xp ?? 0);
   const userXp = profile?.xp ?? 0;
+  const initialStreak = profile?.streak ?? 0;
 
   return (
     <LessonContent
@@ -60,6 +61,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
       initialHearts={initialHearts}
       maxHearts={maxHearts}
       userXp={userXp}
+      initialStreak={initialStreak}
     />
   );
 }

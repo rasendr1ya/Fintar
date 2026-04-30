@@ -54,6 +54,7 @@ export async function buyHeartRefill() {
         user_id: user.id,
         item_id: heartRefillItem.id,
         quantity: 1,
+        purchased_at: new Date().toISOString(),
       });
   }
 
@@ -65,6 +66,102 @@ export async function buyHeartRefill() {
     newCoins: profile.coins - HEART_REFILL_PRICE,
     newHearts: maxHearts,
   };
+}
+
+export async function buyStreakFreeze() {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const supabase = await createClient();
+
+  // 1. Fetch profile
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("coins")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!profile) return { error: "Profile not found" };
+
+  // 2. Fetch Streak Freeze item
+  const { data: item } = await supabase
+    .from("shop_items")
+    .select("id, price_coins")
+    .eq("type", "STREAK_FREEZE")
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!item) return { error: "Item tidak tersedia" };
+
+  if (profile.coins < item.price_coins) {
+    return { error: `Koin tidak cukup! Kamu butuh ${item.price_coins} koin.` };
+  }
+
+  // 3. Cek apakah sudah punya di inventory
+  const { data: existingInventory } = await supabase
+    .from("user_inventory")
+    .select("id, quantity")
+    .eq("user_id", user.id)
+    .eq("item_id", item.id)
+    .maybeSingle();
+
+  if (existingInventory && existingInventory.quantity > 0) {
+    return { error: "Streak Freeze sudah aktif" };
+  }
+
+  // 4. Deduct coins dengan guard konkurensi
+  const { data: updatedProfiles, error: updateError } = await supabase
+    .from("profiles")
+    .update({ coins: profile.coins - item.price_coins })
+    .eq("id", user.id)
+    .gte("coins", item.price_coins)
+    .select();
+
+  if (updateError || !updatedProfiles || updatedProfiles.length === 0) {
+    return { error: "Coins tidak cukup atau transaksi duplikat." };
+  }
+
+  // 5. Upsert inventory
+  const { error: inventoryError } = await supabase
+    .from("user_inventory")
+    .upsert(
+      {
+        user_id: user.id,
+        item_id: item.id,
+        quantity: 1,
+        purchased_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,item_id" }
+    );
+
+  if (inventoryError) {
+    console.error("Error upserting inventory:", inventoryError);
+    return { error: "Gagal menambahkan item ke inventory" };
+  }
+
+  revalidatePath("/shop");
+  revalidatePath("/learn");
+
+  return {
+    success: true,
+    newCoins: profile.coins - item.price_coins,
+  };
+}
+
+export async function getUserInventory() {
+  const user = await getCurrentUser();
+  if (!user) return { items: [], error: "Not authenticated" };
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("user_inventory")
+    .select("*")
+    .eq("user_id", user.id);
+
+  if (error) return { items: [], error: error.message };
+
+  return { items: data || [] };
 }
 
 export async function getShopItems() {

@@ -239,13 +239,14 @@ export async function completeLesson(
   const supabase = await createClient();
 
   // 1. Fetch profile
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("xp, coins, hearts, streak, last_active_at, timezone")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (!profile) {
+  if (profileError || !profile) {
+    console.error("Error fetching profile:", profileError);
     return {
       success: false,
       xpEarned: 0,
@@ -400,13 +401,16 @@ export async function reduceHearts(): Promise<{ hearts: number; error?: string }
 
   const supabase = await createClient();
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("hearts, xp")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (!profile) return { hearts: 0, error: "Profile not found" };
+  if (profileError || !profile) {
+    console.error("Error fetching profile:", profileError);
+    return { hearts: 0, error: "Profile not found" };
+  }
 
   const newHearts = Math.max(profile.hearts - 1, 0);
 

@@ -28,6 +28,7 @@ interface LessonContentProps {
   initialHearts: number;
   maxHearts: number;
   userXp: number;
+  initialStreak: number;
 }
 
 export function LessonContent({
@@ -35,6 +36,8 @@ export function LessonContent({
   challenges,
   initialHearts,
   maxHearts,
+  userXp,
+  initialStreak,
 }: LessonContentProps) {
   const router = useRouter();
   const { playSound, playWithHaptic, triggerHaptic } = useFintarSound();
@@ -60,11 +63,15 @@ export function LessonContent({
   const [showErrorRetry, setShowErrorRetry] = useState(false);
   const [heartAnimKey, setHeartAnimKey] = useState(0);
 
-  // Level up
+  // Level up & completion rewards
   const [levelUpData, setLevelUpData] = useState<{
     newLevel: number;
     oldMaxHearts: number;
     newMaxHearts: number;
+  } | null>(null);
+  const [completionRewards, setCompletionRewards] = useState<{
+    newStreak: number;
+    newCoins: number;
   } | null>(null);
 
   // Refs
@@ -172,6 +179,11 @@ export function LessonContent({
       return;
     }
 
+    setCompletionRewards({
+      newStreak: result.newStreak,
+      newCoins: result.newCoins,
+    });
+
     if (result.didLevelUp) {
       setLevelUpData({
         newLevel: result.newLevel,
@@ -180,14 +192,16 @@ export function LessonContent({
       });
       triggerHaptic(300);
       // Sound levelup + fanfare di-handle oleh LevelUpModal sendiri
-    } else {
-      router.push("/learn");
     }
 
     setIsCompleting(false);
   };
 
   const handleLevelUpClose = () => {
+    router.push("/learn");
+  };
+
+  const handleContinue = () => {
     router.push("/learn");
   };
 
@@ -261,7 +275,7 @@ export function LessonContent({
           </p>
 
           {/* Rewards */}
-          <div className="bg-white rounded-3xl border-2 border-border p-6 mb-8 shadow-card">
+          <div className="bg-white rounded-3xl border-2 border-border p-6 mb-4 shadow-card">
             <div className="flex items-center justify-center gap-6">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1 text-xp mb-1">
@@ -285,6 +299,27 @@ export function LessonContent({
             </div>
           </div>
 
+          {/* Streak feedback */}
+          {completionRewards && (
+            <div className={`rounded-2xl border-2 p-4 mb-4 text-center ${
+              completionRewards.newStreak > initialStreak
+                ? "bg-streak/10 border-streak/30"
+                : "bg-border/20 border-border/30"
+            }`}>
+              <p className="text-2xl mb-1">🔥</p>
+              <p className="font-bold text-text">
+                {completionRewards.newStreak > initialStreak
+                  ? `Streak hari ke-${completionRewards.newStreak}!`
+                  : "Streak terjaga!"}
+              </p>
+              <p className="text-xs text-muted mt-0.5">
+                {completionRewards.newStreak > initialStreak
+                  ? "Luar biasa! Besok lanjut lagi ya."
+                  : "Kamu sudah belajar hari ini. Terus semangat!"}
+              </p>
+            </div>
+          )}
+
           {showErrorRetry && (
             <div className="bg-hearts/10 border border-hearts/20 rounded-2xl p-4 mb-4 text-sm text-hearts font-medium">
               Gagal menyimpan progress. Silakan coba lagi.
@@ -292,12 +327,16 @@ export function LessonContent({
           )}
 
           <Button
-            onClick={handleFinishLesson}
+            onClick={completionRewards ? handleContinue : handleFinishLesson}
             disabled={isCompleting}
             fullWidth
             size="lg"
           >
-            {isCompleting ? "Menyimpan..." : "Kembali ke Jalur Belajar"}
+            {isCompleting
+              ? "Menyimpan..."
+              : completionRewards
+              ? "Lanjutkan"
+              : "Kembali ke Jalur Belajar"}
           </Button>
         </div>
 

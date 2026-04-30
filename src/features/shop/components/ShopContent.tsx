@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { buyHeartRefill } from "@/features/shop/actions";
+import { buyHeartRefill, buyStreakFreeze } from "@/features/shop/actions";
 import type { ShopItem } from "@/types/database";
 
 interface ShopContentProps {
@@ -9,18 +9,26 @@ interface ShopContentProps {
   coins: number;
   hearts: number;
   maxHearts: number;
+  hasStreakFreeze: boolean;
 }
 
-export function ShopContent({ items, coins, hearts, maxHearts }: ShopContentProps) {
+export function ShopContent({ items, coins, hearts, maxHearts, hasStreakFreeze }: ShopContentProps) {
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [localHasStreakFreeze, setLocalHasStreakFreeze] = useState(hasStreakFreeze);
 
   const handleBuy = async (item: ShopItem) => {
     setIsLoading(item.id);
     setMessage(null);
 
     if (item.type === "STREAK_FREEZE") {
-      setMessage({ text: "Streak Freeze segera hadir! Nantikan ya 🧊", type: "error" });
+      const result = await buyStreakFreeze();
+      if (result.error) {
+        setMessage({ text: result.error, type: "error" });
+      } else {
+        setMessage({ text: "Streak Freeze berhasil dibeli! 🧊", type: "success" });
+        setLocalHasStreakFreeze(true);
+      }
       setIsLoading(null);
       return;
     }
@@ -87,23 +95,22 @@ export function ShopContent({ items, coins, hearts, maxHearts }: ShopContentProp
         {items.map((item) => {
           const isStreakFreeze = item.type === "STREAK_FREEZE";
           const canAfford = coins >= item.price_coins;
-          const isDisabled = isLoading === item.id || !canAfford || isStreakFreeze;
+          const isAlreadyOwned = isStreakFreeze && localHasStreakFreeze;
+          const isDisabled = isLoading === item.id || !canAfford || isAlreadyOwned;
 
           return (
             <div
               key={item.id}
-              className={`bg-white rounded-2xl border-2 p-5 transition-all ${
-                isStreakFreeze ? "border-border/20 opacity-70" : "border-border/30"
-              }`}
+              className="bg-white rounded-2xl border-2 border-border/30 p-5 transition-all"
             >
               <div className="flex items-center gap-4">
                 <div className="text-4xl shrink-0">{item.icon || itemIcons[item.type] || "🛒"}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-text">{item.name}</h3>
-                    {isStreakFreeze && (
-                      <span className="text-xs bg-muted/10 text-muted px-2 py-0.5 rounded-full font-medium">
-                        Segera Hadir
+                    {isAlreadyOwned && (
+                      <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full font-medium">
+                        Aktif
                       </span>
                     )}
                   </div>
@@ -122,14 +129,14 @@ export function ShopContent({ items, coins, hearts, maxHearts }: ShopContentProp
                     onClick={() => handleBuy(item)}
                     disabled={isDisabled}
                     title={
-                      isStreakFreeze
-                        ? "Segera hadir"
+                      isAlreadyOwned
+                        ? "Sudah aktif"
                         : !canAfford
                         ? `Koin tidak cukup! Kamu butuh ${item.price_coins} koin.`
                         : `Beli ${item.name}`
                     }
                     className={`text-sm font-bold px-5 py-2 rounded-xl transition-all duration-200 ${
-                      isStreakFreeze
+                      isAlreadyOwned
                         ? "bg-gray-100 text-muted cursor-not-allowed border-2 border-gray-200"
                         : canAfford
                         ? "bg-primary text-white border-b-4 border-primary-dark hover:brightness-110 active:border-b-0 active:translate-y-1"
@@ -138,13 +145,13 @@ export function ShopContent({ items, coins, hearts, maxHearts }: ShopContentProp
                   >
                     {isLoading === item.id
                       ? "..."
-                      : isStreakFreeze
-                      ? "Segera Hadir"
+                      : isAlreadyOwned
+                      ? "Sudah Aktif"
                       : "Beli"}
                   </button>
                 </div>
               </div>
-              {!canAfford && !isStreakFreeze && (
+              {!canAfford && !isAlreadyOwned && (
                 <p className="text-xs text-hearts mt-2 text-right">
                   Koin kurang {item.price_coins - coins} 🪙
                 </p>

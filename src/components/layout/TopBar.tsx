@@ -60,9 +60,19 @@ export function TopBar({ hearts, streak, coins, xp = 0, showLogo = true, lastHea
         {/* Stats */}
         <div className="flex items-center gap-4 md:gap-6">
           {/* Streak */}
-          <div className="flex items-center gap-1.5" title="Daily Streak">
+          <div className="group relative flex items-center gap-1.5 cursor-help">
             <FireIcon className="w-6 h-6 text-streak" />
             <span className="font-bold text-text">{streak}</span>
+
+            {/* Streak Tooltip */}
+            <div className="absolute top-full right-0 mt-3 w-56 bg-white border border-border rounded-xl shadow-xl p-3 hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-1">
+              <p className="text-sm font-bold text-text mb-1">Streak Harian</p>
+              <p className="text-xs text-muted">
+                {streak > 0
+                  ? `Streak ${streak} hari! Selesaikan 1 lesson hari ini untuk mempertahankannya.`
+                  : "Selesaikan 1 lesson hari ini untuk memulai streak-mu!"}
+              </p>
+            </div>
           </div>
 
           {/* Hearts */}
