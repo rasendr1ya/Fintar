@@ -10,17 +10,17 @@ export function Finny({ size = 200, pose = "default", className, ...props }: Fin
   const getArmTransform = () => {
     switch (pose) {
       case "celebrate":
-        return { left: "rotate(-45deg)", right: "rotate(45deg)", leftY: -15, rightY: -15 };
+        return { left: "rotate(-45deg)", right: "rotate(45deg)", leftY: -15, rightY: -15, leftOriginX: 70, leftOriginY: 125, rightOriginX: 130, rightOriginY: 125 };
       case "waving":
-        return { left: "rotate(0deg)", right: "rotate(-30deg)", leftY: 0, rightY: -10 };
+        return { left: "rotate(0deg)", right: "rotate(-30deg)", leftY: 0, rightY: -10, leftOriginX: 70, leftOriginY: 140, rightOriginX: 130, rightOriginY: 140 };
       case "thinking":
-        return { left: "rotate(0deg)", right: "rotate(-60deg)", leftY: 0, rightY: -20 };
+        return { left: "rotate(0deg)", right: "rotate(-60deg)", leftY: 0, rightY: -20, leftOriginX: 70, leftOriginY: 140, rightOriginX: 130, rightOriginY: 140 };
       case "sad":
-        return { left: "rotate(15deg)", right: "rotate(-15deg)", leftY: 5, rightY: 5 };
+        return { left: "rotate(15deg)", right: "rotate(-15deg)", leftY: 5, rightY: 5, leftOriginX: 70, leftOriginY: 140, rightOriginX: 130, rightOriginY: 140 };
       case "reading":
-        return { left: "rotate(-30deg)", right: "rotate(30deg)", leftY: -10, rightY: -10 };
+        return { left: "rotate(-30deg)", right: "rotate(30deg)", leftY: -10, rightY: -10, leftOriginX: 70, leftOriginY: 140, rightOriginX: 130, rightOriginY: 140 };
       default:
-        return { left: "rotate(0deg)", right: "rotate(0deg)", leftY: 0, rightY: 0 };
+        return { left: "rotate(0deg)", right: "rotate(0deg)", leftY: 0, rightY: 0, leftOriginX: 70, leftOriginY: 140, rightOriginX: 130, rightOriginY: 140 };
     }
   };
 
@@ -94,7 +94,7 @@ export function Finny({ size = 200, pose = "default", className, ...props }: Fin
       <ellipse cx="100" cy="155" rx="30" ry="25" fill="#FEF3C7" />
 
       {/* Left Arm */}
-      <g style={{ transformOrigin: "70px 140px", transform: armTransform.left }}>
+      <g style={{ transformOrigin: `${armTransform.leftOriginX}px ${armTransform.leftOriginY}px`, transform: armTransform.left }}>
         <ellipse
           cx="55"
           cy={145 + armTransform.leftY}
@@ -105,10 +105,10 @@ export function Finny({ size = 200, pose = "default", className, ...props }: Fin
       </g>
 
       {/* Right Arm */}
-      <g 
-        style={{ 
-          transformOrigin: "130px 140px", 
-          transform: pose === "waving" ? undefined : armTransform.right 
+      <g
+        style={{
+          transformOrigin: `${armTransform.rightOriginX}px ${armTransform.rightOriginY}px`,
+          transform: pose === "waving" ? undefined : armTransform.right
         }}
         className={pose === "waving" ? "animate-wave" : ""}
       >

@@ -22,7 +22,7 @@ export async function refillHearts() {
 
   await supabase
     .from("profiles")
-    .update({ hearts: maxHearts })
+    .update({ hearts: maxHearts, last_heart_refill_at: new Date().toISOString() })
     .eq("id", user.id);
 
   revalidatePath("/learn");

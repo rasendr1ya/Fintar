@@ -78,6 +78,7 @@ export function LessonContent({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasCompletedRef = useRef(false);
   const isProcessingRef = useRef(false);
+  const autoSubmittedRef = useRef(false);
 
   const currentChallenge = shuffledChallenges[currentIndex];
   const totalChallenges = shuffledChallenges.length;
@@ -93,6 +94,20 @@ export function LessonContent({
       isProcessingRef.current = false;
     };
   }, []);
+
+  // Auto-submit lesson completion when entering COMPLETE phase
+  useEffect(() => {
+    if (
+      phase === "COMPLETE" &&
+      !autoSubmittedRef.current &&
+      !completionRewards &&
+      !hasCompletedRef.current
+    ) {
+      autoSubmittedRef.current = true;
+      handleFinishLesson();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, completionRewards]);
 
   // ── Handlers ──────────────────────────────────────────────
 

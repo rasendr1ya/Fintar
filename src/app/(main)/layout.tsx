@@ -14,13 +14,14 @@ export default async function MainLayout({
     redirect("/login");
   }
 
-  const profile = await getCurrentProfile();
+  let profile = await getCurrentProfile();
 
   if (!profile?.onboarding_done) {
     redirect("/onboarding");
   }
 
   await checkAndRefillHearts();
+  profile = await getCurrentProfile();
 
   return (
     <AppShell

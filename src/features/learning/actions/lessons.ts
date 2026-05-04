@@ -403,7 +403,7 @@ export async function reduceHearts(): Promise<{ hearts: number; error?: string }
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("hearts, xp")
+    .select("hearts, xp, last_heart_refill_at")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -412,11 +412,24 @@ export async function reduceHearts(): Promise<{ hearts: number; error?: string }
     return { hearts: 0, error: "Profile not found" };
   }
 
+  const maxHearts = calculateMaxHearts(profile.xp);
   const newHearts = Math.max(profile.hearts - 1, 0);
+
+  const updateData: Record<string, unknown> = { hearts: newHearts };
+
+  if (newHearts < maxHearts) {
+    const now = new Date();
+    const lastRefill = profile.last_heart_refill_at ? new Date(profile.last_heart_refill_at) : null;
+    const hoursElapsed = lastRefill ? Math.floor((now.getTime() - lastRefill.getTime()) / (1000 * 60 * 60)) : 0;
+
+    if (!lastRefill || hoursElapsed > 0) {
+      updateData.last_heart_refill_at = now.toISOString();
+    }
+  }
 
   const { error: updateError } = await supabase
     .from("profiles")
-    .update({ hearts: newHearts })
+    .update(updateData)
     .eq("id", user.id);
 
   if (updateError) {
@@ -451,23 +464,21 @@ export async function checkAndRefillHearts(): Promise<{ hearts: number; maxHeart
     return { hearts: profile.hearts, maxHearts };
   }
 
-  // Jika belum pernah refill, lakukan full refill
+  // Jika belum pernah refill, set timer mulai dari sekarang
   if (!profile.last_heart_refill_at) {
-    const newHearts = maxHearts;
     const { error: updateError } = await supabase
       .from("profiles")
       .update({
-        hearts: newHearts,
         last_heart_refill_at: new Date().toISOString(),
       })
       .eq("id", user.id);
 
     if (updateError) {
-      console.error("Error refilling hearts:", updateError);
-      return { hearts: profile.hearts, maxHearts, error: "Gagal mengisi ulang nyawa" };
+      console.error("Error setting heart refill timestamp:", updateError);
+      return { hearts: profile.hearts, maxHearts, error: "Gagal mengatur timer nyawa" };
     }
 
-    return { hearts: newHearts, maxHearts };
+    return { hearts: profile.hearts, maxHearts };
   }
 
   const now = new Date();
@@ -485,7 +496,7 @@ export async function checkAndRefillHearts(): Promise<{ hearts: number; maxHeart
     .from("profiles")
     .update({
       hearts: newHearts,
-      last_heart_refill_at: new Date().toISOString(),
+      last_heart_refill_at: new Date(lastRefill.getTime() + hoursElapsed * 60 * 60 * 1000).toISOString(),
     })
     .eq("id", user.id);
 
