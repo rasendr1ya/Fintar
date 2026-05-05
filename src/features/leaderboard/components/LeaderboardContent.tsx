@@ -1,28 +1,12 @@
 "use client";
 
 import { useState } from "react";
-
-interface LeaderboardEntry {
-  rank: number;
-  userId: string;
-  username: string;
-  xp: number;
-  level: number;
-}
+import { TrophyIcon } from "@heroicons/react/24/solid";
+import type { LeaderboardData } from "@/features/leaderboard/actions";
 
 interface LeaderboardContentProps {
-  leaderboard: LeaderboardEntry[];
-  currentUserXP: number;
-  currentUserLevel: number;
-  currentUsername: string;
-  currentUserId?: string;
+  data: LeaderboardData;
 }
-
-const rankEmojis: Record<number, string> = {
-  1: "🥇",
-  2: "🥈",
-  3: "🥉",
-};
 
 function getInitials(username: string): string {
   if (!username) return "?";
@@ -31,25 +15,14 @@ function getInitials(username: string): string {
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 }
 
-export function LeaderboardContent({
-  leaderboard,
-  currentUserXP,
-  currentUserLevel,
-  currentUsername,
-  currentUserId,
-}: LeaderboardContentProps) {
+export function LeaderboardContent({ data }: LeaderboardContentProps) {
+  const { topUsers, currentUserEntry } = data;
   const [isLoading] = useState(false);
-
-  const currentUserEntry = leaderboard.find(
-    (e) => e.username === currentUsername || (currentUserId && e.userId === currentUserId)
-  );
-  const isInTop = currentUserEntry != null;
-  const currentUserRank = currentUserEntry?.rank ?? null;
 
   if (isLoading) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold text-text mb-6">Leaderboard 🏆</h1>
+      <div className="max-w-[600px] mx-auto px-4 py-8 pb-24">
+        <h1 className="text-2xl font-bold text-text mb-6">Leaderboard</h1>
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-border/30 animate-pulse">
@@ -66,63 +39,90 @@ export function LeaderboardContent({
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold text-text mb-6">Leaderboard 🏆</h1>
+    <div className="max-w-[600px] mx-auto px-4 py-8 pb-24">
+      <h1 className="text-2xl font-bold text-text mb-6">Leaderboard</h1>
 
-      {leaderboard.length === 0 && (
-        <div className="text-center py-16">
-          <p className="text-5xl mb-4">🏆</p>
-          <p className="text-lg font-medium text-text mb-2">Belum ada data leaderboard</p>
-          <p className="text-sm text-muted">Mulai belajar untuk muncul di sini!</p>
+      {/* League Banner */}
+      <div className="bg-yellow-100 border-2 border-yellow-200 rounded-2xl p-6 mb-8 flex items-center gap-4 shadow-sm">
+        <div className="bg-yellow-400 p-3 rounded-xl text-white shadow-sm ring-4 ring-yellow-50 shrink-0">
+          <TrophyIcon className="w-8 h-8" />
+        </div>
+        <div>
+          <h2 className="font-bold text-lg text-yellow-800">Liga Sultan</h2>
+          <p className="text-sm text-yellow-700">20 besar minggu ini</p>
+        </div>
+      </div>
+
+      {/* Empty state */}
+      {topUsers.length === 0 && (
+        <div className="bg-white border-2 border-border rounded-2xl overflow-hidden shadow-sm">
+          <div className="p-8 text-center text-muted">
+            Belum ada pemain. Jadilah yang pertama!
+          </div>
         </div>
       )}
 
-      {leaderboard.length > 0 && (
-        <div className="space-y-2">
-          {leaderboard.map((entry) => {
-            const isCurrentUser =
-              entry.username === currentUsername ||
-              (currentUserId && entry.userId === currentUserId);
+      {/* Leaderboard List */}
+      {topUsers.length > 0 && (
+        <div className="bg-white border-2 border-border rounded-2xl overflow-hidden shadow-sm">
+          {topUsers.map((entry) => {
             const initials = getInitials(entry.username);
+            let rankColor = "text-muted";
+            if (entry.rank === 1) rankColor = "text-yellow-500";
+            if (entry.rank === 2) rankColor = "text-gray-400";
+            if (entry.rank === 3) rankColor = "text-orange-400";
 
             return (
               <div
-                key={entry.userId}
-                className={`flex items-center gap-3 p-3 rounded-xl transition-colors ${
-                  isCurrentUser
-                    ? "bg-primary/8 border-2 border-primary/25"
-                    : "bg-white border border-border/30"
+                key={entry.id}
+                className={`flex items-center p-4 border-b border-border last:border-0 transition-colors ${
+                  entry.isCurrentUser
+                    ? "bg-primary-50 hover:bg-primary-50/90"
+                    : "hover:bg-gray-50"
                 }`}
               >
-                <span className="w-8 text-center font-bold text-lg shrink-0">
-                  {rankEmojis[entry.rank] || (
-                    <span className="text-sm text-muted">{entry.rank}</span>
-                  )}
-                </span>
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold ${
-                    isCurrentUser
-                      ? "bg-primary text-white"
-                      : "bg-gray-100 text-text-secondary"
-                  }`}
-                >
+                <div className={`w-8 text-center font-bold mr-4 text-lg ${
+                  entry.isCurrentUser ? "text-primary" : rankColor
+                }`}>
+                  {entry.rank}
+                </div>
+
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold mr-4 shrink-0 ${
+                  entry.isCurrentUser
+                    ? "bg-primary/15 text-primary-dark ring-1 ring-primary/30"
+                    : "bg-gray-100 text-text-secondary"
+                }`}>
                   {initials}
                 </div>
-                <span
-                  className={`flex-1 font-medium truncate ${
-                    isCurrentUser ? "text-primary font-bold" : "text-text"
-                  }`}
-                >
-                  {entry.username}
-                  {isCurrentUser && (
-                    <span className="text-xs ml-1.5 text-primary/70">(kamu)</span>
-                  )}
-                </span>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+
+                <div className="flex-1 min-w-0">
+                  <p
+                    className={`font-bold text-text truncate ${
+                      entry.isCurrentUser ? "text-primary" : ""
+                    }`}
+                  >
+                    {entry.username}
+                    {entry.isCurrentUser && (
+                      <span className="text-xs ml-1 font-medium text-primary/80">
+                        (kamu)
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 ml-2">
+                  <span className={`text-xs ${
+                    entry.isCurrentUser ? "text-primary/70" : "text-muted"
+                  }`}>
                     Lv.{entry.level}
                   </span>
-                  <span className="text-sm text-muted font-medium">{entry.xp} XP</span>
+                  <span className={`font-mono font-bold px-3 py-1.5 rounded-lg text-sm ${
+                    entry.isCurrentUser
+                      ? "bg-white text-primary ring-1 ring-primary/20"
+                      : "bg-gray-100 text-muted"
+                  }`}>
+                    {entry.xp.toLocaleString("id-ID")} XP
+                  </span>
                 </div>
               </div>
             );
@@ -130,29 +130,42 @@ export function LeaderboardContent({
         </div>
       )}
 
-      {!isInTop && currentUserXP > 0 && (
+      {/* Enhancement: current user outside top 20 */}
+      {currentUserEntry && (
         <>
           <div className="flex items-center gap-3 my-4">
             <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted font-medium">• • •</span>
+            <span className="text-xs text-muted font-medium">Posisi Kamu</span>
             <div className="flex-1 h-px bg-border" />
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/8 border-2 border-primary/25">
-            <span className="w-8 text-center text-sm text-muted shrink-0">
-              #{currentUserRank ?? ">"}
-            </span>
-            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold bg-primary text-white">
-              {getInitials(currentUsername)}
-            </div>
-            <span className="flex-1 font-bold text-primary truncate">
-              {currentUsername}
-              <span className="text-xs ml-1.5 text-primary/70">(kamu)</span>
-            </span>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
-                Lv.{currentUserLevel}
-              </span>
-              <span className="text-sm text-muted font-medium">{currentUserXP} XP</span>
+
+          <div className="bg-white border-2 border-border rounded-2xl overflow-hidden shadow-sm">
+            <div className="flex items-center p-4 bg-primary-50">
+              <div className="w-8 text-center font-bold mr-4 text-lg text-primary">
+                {currentUserEntry.rank}
+              </div>
+
+              <div className="w-10 h-10 rounded-full bg-primary/15 text-primary-dark ring-1 ring-primary/30 flex items-center justify-center text-sm font-bold mr-4 shrink-0">
+                {getInitials(currentUserEntry.username)}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-primary truncate">
+                  {currentUserEntry.username}
+                  <span className="text-xs ml-1 font-medium text-primary/80">
+                    (kamu)
+                  </span>
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0 ml-2">
+                <span className="text-xs text-primary/70">
+                  Lv.{currentUserEntry.level}
+                </span>
+                <span className="font-mono font-bold bg-white text-primary ring-1 ring-primary/20 px-3 py-1.5 rounded-lg text-sm">
+                  {currentUserEntry.xp.toLocaleString("id-ID")} XP
+                </span>
+              </div>
             </div>
           </div>
         </>

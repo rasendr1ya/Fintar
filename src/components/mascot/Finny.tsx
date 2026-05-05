@@ -10,7 +10,7 @@ export function Finny({ size = 200, pose = "default", className, ...props }: Fin
   const getArmTransform = () => {
     switch (pose) {
       case "celebrate":
-        return { left: "rotate(-45deg)", right: "rotate(45deg)", leftY: -15, rightY: -15, leftOriginX: 70, leftOriginY: 125, rightOriginX: 130, rightOriginY: 125 };
+        return { left: "rotate(-45deg)", right: "rotate(45deg)", leftY: -10, rightY: -10, leftOriginX: 70, leftOriginY: 125, rightOriginX: 130, rightOriginY: 125 };
       case "waving":
         return { left: "rotate(0deg)", right: "rotate(-30deg)", leftY: 0, rightY: -10, leftOriginX: 70, leftOriginY: 140, rightOriginX: 130, rightOriginY: 140 };
       case "thinking":

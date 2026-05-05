@@ -18,6 +18,7 @@ import {
   SparklesIcon,
   ShoppingBagIcon,
   ArrowLeftIcon,
+  FireIcon,
 } from "@heroicons/react/24/solid";
 
 type Phase = "IDLE" | "CORRECT" | "WRONG" | "GAME_OVER" | "COMPLETE";
@@ -289,7 +290,7 @@ export function LessonContent({
               : `Kamu menyelesaikan pelajaran dengan ${totalChallenges - answeredCorrectly.size} kesalahan.`}
           </p>
 
-          {/* Rewards */}
+          {/* Rewards — XP, Koin, Streak */}
           <div className="bg-white rounded-3xl border-2 border-border p-6 mb-4 shadow-card">
             <div className="flex items-center justify-center gap-6">
               <div className="text-center">
@@ -311,29 +312,22 @@ export function LessonContent({
                   Koin
                 </span>
               </div>
+              {completionRewards && (
+                <>
+                  <div className="w-px h-12 bg-border" />
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-1 text-streak mb-1">
+                      <FireIcon className="w-6 h-6" />
+                      <span className="text-2xl font-extrabold">{completionRewards.newStreak}</span>
+                    </div>
+                    <span className="text-xs font-semibold text-muted uppercase tracking-wide">
+                      STREAK
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
-
-          {/* Streak feedback */}
-          {completionRewards && (
-            <div className={`rounded-2xl border-2 p-4 mb-4 text-center ${
-              completionRewards.newStreak > initialStreak
-                ? "bg-streak/10 border-streak/30"
-                : "bg-border/20 border-border/30"
-            }`}>
-              <p className="text-2xl mb-1">🔥</p>
-              <p className="font-bold text-text">
-                {completionRewards.newStreak > initialStreak
-                  ? `Streak hari ke-${completionRewards.newStreak}!`
-                  : "Streak terjaga!"}
-              </p>
-              <p className="text-xs text-muted mt-0.5">
-                {completionRewards.newStreak > initialStreak
-                  ? "Luar biasa! Besok lanjut lagi ya."
-                  : "Kamu sudah belajar hari ini. Terus semangat!"}
-              </p>
-            </div>
-          )}
 
           {showErrorRetry && (
             <div className="bg-hearts/10 border border-hearts/20 rounded-2xl p-4 mb-4 text-sm text-hearts font-medium">

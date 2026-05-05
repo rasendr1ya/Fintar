@@ -9,6 +9,7 @@
     "lint": "eslint",
     "db:types": "npx supabase gen types typescript --project-id your-project-id > src/types/supabase.ts",
     "seed": "npx tsx src/scripts/seed.ts",
+    "seed:leaderboard": "npx tsx src/scripts/seed_leaderboard_dummy.ts",
     "setup-db": "npx tsx src/scripts/setup-db.ts",
     "migrate": "npx supabase db push"
   },
