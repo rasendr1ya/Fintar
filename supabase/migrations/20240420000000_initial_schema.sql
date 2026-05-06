@@ -107,6 +107,13 @@ CREATE TABLE IF NOT EXISTS public.user_quests (
   UNIQUE(user_id, quest_id, assigned_at)
 );
 
+-- ─── Seed Daily Quests ───
+INSERT INTO public.quests (id, title, description, type, target_value, reward_xp, reward_coins, is_daily) VALUES
+  ('a0000000-0000-0000-0000-000000000001', 'Login Hari Ini', 'Buka Fintar hari ini dan dapatkan reward!', 'LOGIN', 1, 5, 3, true),
+  ('a0000000-0000-0000-0000-000000000002', 'Kumpulkan XP', 'Raih 50 XP dari belajar hari ini', 'XP', 50, 15, 5, true),
+  ('a0000000-0000-0000-0000-000000000003', 'Selesaikan Lesson', 'Selesaikan 2 lesson hari ini', 'LESSON', 2, 20, 10, true)
+ON CONFLICT (id) DO NOTHING;
+
 -- ─── Shop Items ───
 CREATE TABLE IF NOT EXISTS public.shop_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

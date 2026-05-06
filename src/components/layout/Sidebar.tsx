@@ -10,6 +10,7 @@ import {
   ShoppingBagIcon,
   BookOpenIcon,
   WrenchScrewdriverIcon,
+  BoltIcon,
 } from "@heroicons/react/24/outline";
 import {
   HomeIcon as HomeIconSolid,
@@ -18,6 +19,7 @@ import {
   ShoppingBagIcon as ShoppingBagIconSolid,
   BookOpenIcon as BookOpenIconSolid,
   WrenchScrewdriverIcon as WrenchScrewdriverIconSolid,
+  BoltIcon as BoltIconSolid,
 } from "@heroicons/react/24/solid";
 import { Logo } from "@/components/branding/Logo";
 
@@ -34,6 +36,12 @@ const navItems: NavItem[] = [
     label: "Learn",
     icon: HomeIcon,
     activeIcon: HomeIconSolid,
+  },
+  {
+    href: "/quests",
+    label: "Quests",
+    icon: BoltIcon,
+    activeIcon: BoltIconSolid,
   },
   {
     href: "/shop",

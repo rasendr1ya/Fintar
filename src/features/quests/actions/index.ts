@@ -2,6 +2,7 @@
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { calculateLevel, calculateMaxHearts } from "@/lib/utils";
 
 export async function getDailyQuests() {
   const user = await getCurrentUser();
@@ -40,18 +41,31 @@ export async function claimQuestReward(userQuestId: string) {
 
   const { data: currentProfile } = await supabase
     .from("profiles")
-    .select("xp, coins")
+    .select("xp, coins, hearts")
     .eq("id", user.id)
     .single();
 
   if (!currentProfile) return { error: "Profile not found" };
 
+  const oldLevel = calculateLevel(currentProfile.xp);
+  const newXp = currentProfile.xp + quest.reward_xp;
+  const newLevel = calculateLevel(newXp);
+  const leveledUp = newLevel > oldLevel;
+  const newCoins = currentProfile.coins + quest.reward_coins;
+
+  const updateData: Record<string, unknown> = {
+    xp: newXp,
+    coins: newCoins,
+  };
+
+  if (leveledUp) {
+    updateData.hearts = calculateMaxHearts(newXp);
+    updateData.last_heart_refill_at = new Date().toISOString();
+  }
+
   await supabase
     .from("profiles")
-    .update({
-      xp: currentProfile.xp + quest.reward_xp,
-      coins: currentProfile.coins + quest.reward_coins,
-    })
+    .update(updateData)
     .eq("id", user.id);
 
   await supabase
@@ -61,8 +75,14 @@ export async function claimQuestReward(userQuestId: string) {
 
   revalidatePath("/learn");
   revalidatePath("/quests");
+  revalidatePath("/leaderboard");
 
-  return { success: true, xp: quest.reward_xp, coins: quest.reward_coins };
+  return {
+    success: true,
+    xpEarned: quest.reward_xp,
+    coinsEarned: quest.reward_coins,
+    leveledUp,
+  };
 }
 
 export async function updateQuestProgress(type: string, amount: number = 1) {

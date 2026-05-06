@@ -8,6 +8,7 @@ import {
   UserIcon,
   ShoppingBagIcon,
   BookOpenIcon,
+  BoltIcon,
 } from "@heroicons/react/24/outline";
 import {
   HomeIcon as HomeIconSolid,
@@ -15,6 +16,7 @@ import {
   UserIcon as UserIconSolid,
   ShoppingBagIcon as ShoppingBagIconSolid,
   BookOpenIcon as BookOpenIconSolid,
+  BoltIcon as BoltIconSolid,
 } from "@heroicons/react/24/solid";
 
 interface NavItem {
@@ -30,6 +32,12 @@ const navItems: NavItem[] = [
     label: "Learn",
     icon: HomeIcon,
     activeIcon: HomeIconSolid,
+  },
+  {
+    href: "/quests",
+    label: "Quest",
+    icon: BoltIcon,
+    activeIcon: BoltIconSolid,
   },
   {
     href: "/shop",

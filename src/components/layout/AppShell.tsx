@@ -20,7 +20,7 @@ export function AppShell({
   coins = 0,
   xp = 0,
   lastHeartRefillAt,
-  isAdmin = false
+  isAdmin = false,
 }: AppShellProps) {
   return (
     <div className="min-h-screen bg-bg">
