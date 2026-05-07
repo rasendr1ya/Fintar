@@ -10,6 +10,7 @@ interface AppShellProps {
   coins?: number;
   xp?: number;
   lastHeartRefillAt?: string | null;
+  streakFreezeActive?: boolean;
   isAdmin?: boolean;
 }
 
@@ -20,6 +21,7 @@ export function AppShell({
   coins = 0,
   xp = 0,
   lastHeartRefillAt,
+  streakFreezeActive = false,
   isAdmin = false,
 }: AppShellProps) {
   return (
@@ -35,7 +37,8 @@ export function AppShell({
           streak={streak} 
           coins={coins} 
           xp={xp}
-          lastHeartRefillAt={lastHeartRefillAt} 
+          lastHeartRefillAt={lastHeartRefillAt}
+          streakFreezeActive={streakFreezeActive}
         />
 
         {/* Page Content */}

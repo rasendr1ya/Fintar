@@ -77,7 +77,7 @@ export async function buyStreakFreeze() {
   // 1. Fetch profile
   const { data: profile } = await supabase
     .from("profiles")
-    .select("coins")
+    .select("coins, streak_freeze_active")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -93,26 +93,23 @@ export async function buyStreakFreeze() {
 
   if (!item) return { error: "Item tidak tersedia" };
 
+  // 3. Guard: sudah aktif
+  if (profile.streak_freeze_active) {
+    return { error: "Streak Freeze sudah aktif! Tidak perlu beli lagi." };
+  }
+
+  // 4. Guard: coins tidak cukup
   if (profile.coins < item.price_coins) {
     return { error: `Koin tidak cukup! Kamu butuh ${item.price_coins} koin.` };
   }
 
-  // 3. Cek apakah sudah punya di inventory
-  const { data: existingInventory } = await supabase
-    .from("user_inventory")
-    .select("id, quantity")
-    .eq("user_id", user.id)
-    .eq("item_id", item.id)
-    .maybeSingle();
-
-  if (existingInventory && existingInventory.quantity > 0) {
-    return { error: "Streak Freeze sudah aktif" };
-  }
-
-  // 4. Deduct coins dengan guard konkurensi
+  // 5. Deduct coins & activate freeze dengan guard konkurensi
   const { data: updatedProfiles, error: updateError } = await supabase
     .from("profiles")
-    .update({ coins: profile.coins - item.price_coins })
+    .update({
+      coins: profile.coins - item.price_coins,
+      streak_freeze_active: true,
+    })
     .eq("id", user.id)
     .gte("coins", item.price_coins)
     .select();
@@ -121,23 +118,15 @@ export async function buyStreakFreeze() {
     return { error: "Coins tidak cukup atau transaksi duplikat." };
   }
 
-  // 5. Upsert inventory
-  const { error: inventoryError } = await supabase
+  // 6. Insert ke user_inventory
+  await supabase
     .from("user_inventory")
-    .upsert(
-      {
-        user_id: user.id,
-        item_id: item.id,
-        quantity: 1,
-        purchased_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id,item_id" }
-    );
-
-  if (inventoryError) {
-    console.error("Error upserting inventory:", inventoryError);
-    return { error: "Gagal menambahkan item ke inventory" };
-  }
+    .insert({
+      user_id: user.id,
+      item_id: item.id,
+      quantity: 1,
+      purchased_at: new Date().toISOString(),
+    });
 
   revalidatePath("/shop");
   revalidatePath("/learn");
@@ -170,7 +159,8 @@ export async function getShopItems() {
   const { data: items, error } = await supabase
     .from("shop_items")
     .select("*")
-    .eq("is_active", true);
+    .order("is_active", { ascending: false })
+    .order("type");
 
   if (error) return { items: [], error: error.message };
 

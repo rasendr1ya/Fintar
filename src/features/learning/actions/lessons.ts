@@ -241,7 +241,7 @@ export async function completeLesson(
   // 1. Fetch profile
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("xp, coins, hearts, streak, last_active_at, timezone")
+    .select("xp, coins, hearts, streak, last_active_at, timezone, streak_freeze_active")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -326,7 +326,8 @@ export async function completeLesson(
   const streakResult = calculateNewStreak(
     profile.streak,
     profile.last_active_at,
-    profile.timezone || "Asia/Jakarta"
+    profile.timezone || "Asia/Jakarta",
+    profile.streak_freeze_active ?? false
   );
 
   const updateData: Record<string, unknown> = {
@@ -336,6 +337,10 @@ export async function completeLesson(
     last_active_at: streakResult.lastActiveAt,
     current_unit_id: null,
   };
+
+  if (streakResult.consumeFreeze) {
+    updateData.streak_freeze_active = false;
+  }
 
   if (leveledUp) {
     updateData.hearts = newMaxHearts;

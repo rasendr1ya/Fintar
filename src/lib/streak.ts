@@ -2,6 +2,7 @@ export interface StreakResult {
   newStreak: number;
   lastActiveAt: string;
   shouldReset: boolean;
+  consumeFreeze: boolean;
 }
 
 export const DEFAULT_TIMEZONE = "Asia/Jakarta";
@@ -37,7 +38,8 @@ function getDateInTimezone(date: Date, timezone: string): string {
 export function calculateNewStreak(
   currentStreak: number,
   lastActiveAt: string | null,
-  timezone: string = DEFAULT_TIMEZONE
+  timezone: string = DEFAULT_TIMEZONE,
+  streakFreezeActive: boolean = false
 ): StreakResult {
   const now = new Date();
   const todayStr = getDateInTimezone(now, timezone);
@@ -47,6 +49,7 @@ export function calculateNewStreak(
       newStreak: 1,
       lastActiveAt: now.toISOString(),
       shouldReset: false,
+      consumeFreeze: false,
     };
   }
 
@@ -58,6 +61,7 @@ export function calculateNewStreak(
       newStreak: currentStreak,
       lastActiveAt: lastActiveAt,
       shouldReset: false,
+      consumeFreeze: false,
     };
   }
 
@@ -71,12 +75,30 @@ export function calculateNewStreak(
       newStreak: currentStreak + 1,
       lastActiveAt: now.toISOString(),
       shouldReset: false,
+      consumeFreeze: false,
     };
+  }
+
+  // Streak Freeze: user melewatkan tepat 1 hari (aktif 2 hari lalu)
+  if (streakFreezeActive) {
+    const dayBeforeYesterday = new Date(now);
+    dayBeforeYesterday.setDate(dayBeforeYesterday.getDate() - 2);
+    const dayBeforeYesterdayStr = getDateInTimezone(dayBeforeYesterday, timezone);
+
+    if (lastActiveStr === dayBeforeYesterdayStr) {
+      return {
+        newStreak: currentStreak + 1,
+        lastActiveAt: now.toISOString(),
+        shouldReset: false,
+        consumeFreeze: true,
+      };
+    }
   }
 
   return {
     newStreak: 1,
     lastActiveAt: now.toISOString(),
     shouldReset: true,
+    consumeFreeze: false,
   };
 }

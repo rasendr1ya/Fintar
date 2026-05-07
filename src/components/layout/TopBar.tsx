@@ -13,9 +13,10 @@ interface TopBarProps {
   xp?: number;
   showLogo?: boolean;
   lastHeartRefillAt?: string | null;
+  streakFreezeActive?: boolean;
 }
 
-export function TopBar({ hearts, streak, coins, xp = 0, showLogo = true, lastHeartRefillAt }: TopBarProps) {
+export function TopBar({ hearts, streak, coins, xp = 0, showLogo = true, lastHeartRefillAt, streakFreezeActive = false }: TopBarProps) {
   // State hanya untuk trigger re-render setiap detik
   const [tick, setTick] = useState(0);
 
@@ -63,6 +64,9 @@ export function TopBar({ hearts, streak, coins, xp = 0, showLogo = true, lastHea
           <div className="group relative flex items-center gap-1.5 cursor-help">
             <FireIcon className="w-6 h-6 text-streak" />
             <span className="font-bold text-text">{streak}</span>
+            {streakFreezeActive && (
+              <span className="text-sm" title="Streak Freeze aktif">🛡️</span>
+            )}
 
             {/* Streak Tooltip */}
             <div className="absolute top-full right-0 mt-3 w-56 bg-white border border-border rounded-xl shadow-xl p-3 hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-1">
@@ -89,10 +93,10 @@ export function TopBar({ hearts, streak, coins, xp = 0, showLogo = true, lastHea
                  Max Capacity: {maxHearts}<br/>
                  (Increases with Level)
                </p>
-               {hearts < maxHearts && timeLeft ? (
-                 <div className="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded-lg text-center">
-                   Next +1 in: {timeLeft}
-                 </div>
+                {hearts < maxHearts && timeLeft ? (
+                  <div className="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded-lg text-center" suppressHydrationWarning>
+                    Next +1 in: {timeLeft}
+                  </div>
                ) : (
                  <div className="text-xs text-success font-semibold">Full Energy!</div>
                )}

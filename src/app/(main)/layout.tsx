@@ -30,6 +30,7 @@ export default async function MainLayout({
       coins={profile?.coins ?? 0}
       xp={profile?.xp ?? 0}
       lastHeartRefillAt={profile?.last_heart_refill_at}
+      streakFreezeActive={profile?.streak_freeze_active ?? false}
       isAdmin={profile?.is_admin ?? false}
     >
       {children}

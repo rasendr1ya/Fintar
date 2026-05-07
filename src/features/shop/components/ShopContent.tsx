@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { buyHeartRefill, buyStreakFreeze } from "@/features/shop/actions";
+import { ShopItemCard } from "@/features/shop/components/ShopItemCard";
+import { Finny } from "@/components/mascot/Finny";
 import type { ShopItem } from "@/types/database";
 
 interface ShopContentProps {
@@ -9,156 +11,95 @@ interface ShopContentProps {
   coins: number;
   hearts: number;
   maxHearts: number;
-  hasStreakFreeze: boolean;
+  streakFreezeActive?: boolean;
 }
 
-export function ShopContent({ items, coins, hearts, maxHearts, hasStreakFreeze }: ShopContentProps) {
-  const [isLoading, setIsLoading] = useState<string | null>(null);
+export function ShopContent({ items, coins, hearts, maxHearts, streakFreezeActive = false }: ShopContentProps) {
+  const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
-  const [localHasStreakFreeze, setLocalHasStreakFreeze] = useState(hasStreakFreeze);
 
-  const handleBuy = async (item: ShopItem) => {
-    setIsLoading(item.id);
+  const handleBuy = (item: ShopItem) => {
     setMessage(null);
 
-    if (item.type === "STREAK_FREEZE") {
-      const result = await buyStreakFreeze();
-      if (result.error) {
-        setMessage({ text: result.error, type: "error" });
-      } else {
-        setMessage({ text: "Streak Freeze berhasil dibeli! 🧊", type: "success" });
-        setLocalHasStreakFreeze(true);
-      }
-      setIsLoading(null);
-      return;
-    }
-
-    if (item.type === "HEART_REFILL") {
-      if (hearts >= maxHearts) {
-        setMessage({ text: "Hearts kamu sudah penuh! Tidak perlu refill ❤️", type: "error" });
-        setIsLoading(null);
+    startTransition(async () => {
+      if (item.type === "STREAK_FREEZE") {
+        const result = await buyStreakFreeze();
+        if (result.error) {
+          setMessage({ text: result.error, type: "error" });
+        } else {
+          setMessage({ text: "Streak Freeze aktif! Streak kamu terlindungi. 🛡️", type: "success" });
+        }
         return;
       }
-      const result = await buyHeartRefill();
-      if (result.error) {
-        setMessage({ text: result.error, type: "error" });
-      } else {
-        setMessage({ text: "Hearts berhasil diisi ulang! ❤️", type: "success" });
+
+      if (item.type === "HEART_REFILL") {
+        if (hearts >= maxHearts) {
+          setMessage({ text: "Hearts kamu sudah penuh! ❤️", type: "error" });
+          return;
+        }
+        const result = await buyHeartRefill();
+        if (result.error) {
+          setMessage({ text: result.error, type: "error" });
+        } else {
+          setMessage({ text: "Hearts berhasil diisi ulang! ❤️", type: "success" });
+        }
       }
-    }
-
-    setIsLoading(null);
-  };
-
-  const itemIcons: Record<string, string> = {
-    HEART_REFILL: "❤️‍🩹",
-    STREAK_FREEZE: "🧊",
-    XP_BOOST: "⭐",
-    COSMETIC: "🎨",
+    });
   };
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-text">Shop</h1>
-        <div className="flex items-center gap-1.5 bg-coins/10 px-4 py-2 rounded-2xl border border-coins/20">
-          <span className="text-lg">🪙</span>
-          <span className="font-bold text-text text-lg">{coins}</span>
+        <div className="hidden sm:block">
+          <Finny pose="waving" size={64} />
         </div>
       </div>
 
-      <div className="mb-6 bg-white rounded-2xl border-2 border-border/30 p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-muted">Hearts kamu</span>
-          <div className="flex items-center gap-1">
-            <span className="text-hearts">❤️</span>
-            <span className="font-bold text-text">{hearts}/{maxHearts}</span>
-          </div>
+      {/* Coin Balance Banner */}
+      <div className="bg-gradient-to-r from-yellow-400 to-orange-400 rounded-2xl p-6 mb-8 text-white flex items-center justify-between shadow-lg">
+        <div>
+          <p className="font-bold text-yellow-100 uppercase text-xs tracking-wider mb-2">Koin Kamu</p>
+          <span className="text-4xl font-extrabold">{coins}</span>
         </div>
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden mt-2">
-          <div
-            className="h-full bg-hearts rounded-full transition-all duration-500"
-            style={{ width: `${(hearts / maxHearts) * 100}%` }}
-          />
+        <div className="opacity-80">
+          <svg width="80" height="80" viewBox="0 0 80 80" fill="none" className="text-white/20 -rotate-12">
+            <circle cx="40" cy="40" r="30" fill="currentColor" />
+            <text x="40" y="48" textAnchor="middle" fill="#F97316" fontSize="28" fontWeight="bold">$</text>
+          </svg>
         </div>
       </div>
+
+      {streakFreezeActive && (
+        <div className="mb-4 p-4 rounded-xl bg-blue-50 border border-blue-100 text-sm text-blue-700 font-medium text-center">
+          🛡️ Streak Freeze aktif! Streak kamu aman jika melewatkan 1 hari belajar.
+        </div>
+      )}
 
       {message && (
-        <div className={`mb-4 p-4 rounded-xl text-sm font-medium text-center animate-shake ${
+        <div className={`mb-4 p-4 rounded-xl text-sm font-medium text-center ${
           message.type === "success" ? "bg-success/10 text-success border border-success/20" : "bg-hearts/10 text-hearts border border-hearts/20"
         }`}>
           {message.text}
         </div>
       )}
 
-      <div className="space-y-4">
-        {items.map((item) => {
-          const isStreakFreeze = item.type === "STREAK_FREEZE";
-          const canAfford = coins >= item.price_coins;
-          const isAlreadyOwned = isStreakFreeze && localHasStreakFreeze;
-          const isDisabled = isLoading === item.id || !canAfford || isAlreadyOwned;
+      {/* Power-ups Section */}
+      <h2 className="text-xl font-bold text-text mb-4">Power-ups</h2>
 
-          return (
-            <div
-              key={item.id}
-              className="bg-white rounded-2xl border-2 border-border/30 p-5 transition-all"
-            >
-              <div className="flex items-center gap-4">
-                <div className="text-4xl shrink-0">{item.icon || itemIcons[item.type] || "🛒"}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-text">{item.name}</h3>
-                    {isAlreadyOwned && (
-                      <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full font-medium">
-                        Aktif
-                      </span>
-                    )}
-                  </div>
-                  {item.description && (
-                    <p className="text-sm text-muted mt-1">{item.description}</p>
-                  )}
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="flex items-center gap-1 mb-2">
-                    <span className="text-sm">🪙</span>
-                    <span className={`font-bold ${canAfford ? "text-text" : "text-hearts"}`}>
-                      {item.price_coins}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => handleBuy(item)}
-                    disabled={isDisabled}
-                    title={
-                      isAlreadyOwned
-                        ? "Sudah aktif"
-                        : !canAfford
-                        ? `Koin tidak cukup! Kamu butuh ${item.price_coins} koin.`
-                        : `Beli ${item.name}`
-                    }
-                    className={`text-sm font-bold px-5 py-2 rounded-xl transition-all duration-200 ${
-                      isAlreadyOwned
-                        ? "bg-gray-100 text-muted cursor-not-allowed border-2 border-gray-200"
-                        : canAfford
-                        ? "bg-primary text-white border-b-4 border-primary-dark hover:brightness-110 active:border-b-0 active:translate-y-1"
-                        : "bg-gray-100 text-muted cursor-not-allowed border-2 border-gray-200"
-                    }`}
-                  >
-                    {isLoading === item.id
-                      ? "..."
-                      : isAlreadyOwned
-                      ? "Sudah Aktif"
-                      : "Beli"}
-                  </button>
-                </div>
-              </div>
-              {!canAfford && !isAlreadyOwned && (
-                <p className="text-xs text-hearts mt-2 text-right">
-                  Koin kurang {item.price_coins - coins} 🪙
-                </p>
-              )}
-            </div>
-          );
-        })}
+      <div className="space-y-4">
+        {items.map((item) => (
+          <ShopItemCard
+            key={item.id}
+            item={item}
+            userCoins={coins}
+            streakFreezeActive={streakFreezeActive}
+            heartsFull={hearts >= maxHearts}
+            onBuy={() => handleBuy(item)}
+            isPending={isPending}
+          />
+        ))}
 
         {items.length === 0 && (
           <div className="text-center py-12">

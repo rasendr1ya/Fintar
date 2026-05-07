@@ -19,6 +19,7 @@ export interface Profile {
   last_active_at: string | null;
   last_heart_refill_at: string | null;
   timezone: string | null;
+  streak_freeze_active: boolean;
   is_admin: boolean;
   onboarding_done: boolean;
   created_at: string;
