@@ -25,6 +25,10 @@ export async function buyHeartRefill() {
 
   const maxHearts = calculateMaxHearts(profile.xp);
 
+  if (profile.hearts >= maxHearts) {
+    return { error: "Hearts kamu sudah penuh!" };
+  }
+
   const { data: updatedProfiles, error: updateError } = await supabase
     .from("profiles")
     .update({
@@ -60,6 +64,7 @@ export async function buyHeartRefill() {
 
   revalidatePath("/shop");
   revalidatePath("/learn");
+  revalidatePath("/lesson", "layout");
 
   return {
     success: true,

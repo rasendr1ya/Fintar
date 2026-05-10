@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { FireIcon, TrophyIcon, BoltIcon } from "@heroicons/react/24/solid";
+import { FireIcon, BoltIcon } from "@heroicons/react/24/solid";
 import { getDailyQuests } from "@/features/quests/actions";
+import { MiniLeaderboard } from "@/features/leaderboard/components/MiniLeaderboard";
 
 interface QuestWithDetails {
   quest_id: string;
@@ -57,35 +58,8 @@ export async function RightSidebar() {
         )}
       </div>
 
-      {/* League Widget */}
-      <div className="bg-white rounded-2xl border-2 border-gray-200 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-gray-700">Leaderboard</h3>
-          <Link href="/leaderboard" className="text-primary text-sm font-bold uppercase hover:text-primary-dark">
-            View League
-          </Link>
-        </div>
-        
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-            <TrophyIcon className="w-5 h-5 text-yellow-600" />
-          </div>
-          <div>
-            <p className="font-bold text-gray-800">Silver League</p>
-            <p className="text-sm text-gray-500">Top 10 advance</p>
-          </div>
-        </div>
-        
-        <div className="border-t border-gray-100 pt-3">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">
-              Y
-            </div>
-            <span className="font-bold text-sm text-gray-700 flex-1">You</span>
-            <span className="text-sm font-medium text-gray-500">#5</span>
-          </div>
-        </div>
-      </div>
+      {/* Mini Leaderboard */}
+      <MiniLeaderboard />
 
       {/* Finny Ad / Tip */}
       <div className="bg-white rounded-2xl border-2 border-gray-200 p-5 relative overflow-hidden">

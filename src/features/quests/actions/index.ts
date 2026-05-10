@@ -91,6 +91,9 @@ export async function updateQuestProgress(type: string, amount: number = 1) {
 
   const supabase = await createClient();
 
+  // Bootstrap: pastikan quest hari ini sudah ada sebelum update progress
+  await supabase.rpc("get_or_create_daily_quests", { p_user_id: user.id });
+
   const today = new Date().toISOString().split("T")[0];
 
   const { data: quests } = await supabase
@@ -111,7 +114,7 @@ export async function updateQuestProgress(type: string, amount: number = 1) {
       .single();
 
     if (existingUQ) {
-      if (existingUQ.is_completed) return;
+      if (existingUQ.is_completed) continue;
       const { data: questData } = await supabase
         .from("quests")
         .select("target_value")

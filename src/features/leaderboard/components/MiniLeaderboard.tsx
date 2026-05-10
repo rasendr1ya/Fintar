@@ -6,8 +6,16 @@ export async function MiniLeaderboard() {
   const top5 = topUsers.slice(0, 5);
 
   return (
-    <div className="bg-white rounded-2xl border border-border/30 p-4">
-      <h3 className="text-sm font-bold text-text mb-3">Top Peringkat</h3>
+    <div className="bg-white rounded-2xl border-2 border-gray-200 p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-bold text-gray-700">Leaderboard</h3>
+        <Link
+          href="/leaderboard"
+          className="text-primary text-sm font-bold uppercase hover:text-primary-dark"
+        >
+          View All
+        </Link>
+      </div>
 
       {top5.length === 0 && (
         <p className="text-xs text-muted text-center py-2">
@@ -22,13 +30,6 @@ export async function MiniLeaderboard() {
           ))}
         </div>
       )}
-
-      <Link
-        href="/leaderboard"
-        className="block text-center text-xs text-primary hover:text-primary-dark font-medium mt-3 pt-2 border-t border-border/30 transition-colors"
-      >
-        Lihat Semua →
-      </Link>
     </div>
   );
 }
