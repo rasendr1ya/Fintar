@@ -123,6 +123,26 @@ export interface Article {
   updated_at: string;
 }
 
+export interface ChallengeOption {
+  text: string;
+  image?: string;
+}
+
+export interface UnitWithLessons extends Unit {
+  lessons: Lesson[];
+}
+
+export interface LessonWithChallenges extends Lesson {
+  challenges: Challenge[];
+}
+
+export interface AdminStats {
+  users: number;
+  articles: number;
+  lessons: number;
+  challenges: number;
+}
+
 export type ChallengeType = "SELECT" | "ASSIST";
 export type QuestType = "XP" | "LESSON" | "LOGIN";
 export type ShopItemType = "HEART_REFILL" | "STREAK_FREEZE" | "XP_BOOST" | "COSMETIC";
