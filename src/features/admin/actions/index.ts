@@ -6,6 +6,7 @@ export {
   createUnit,
   updateUnit,
   deleteUnit,
+  reorderUnits,
 } from "./units";
 export type { CreateUnitInput, UpdateUnitInput } from "./units";
 
@@ -15,6 +16,7 @@ export {
   createLesson,
   updateLesson,
   deleteLesson,
+  reorderLessons,
 } from "./lessons";
 export type { CreateLessonInput, UpdateLessonInput } from "./lessons";
 
@@ -24,6 +26,7 @@ export {
   createChallenge,
   updateChallenge,
   deleteChallenge,
+  reorderChallenges,
 } from "./challenges";
 export type { CreateChallengeInput, UpdateChallengeInput } from "./challenges";
 
@@ -35,5 +38,6 @@ export {
   deleteArticle,
   togglePublish,
   toggleFeature,
+  uploadBlogImage,
 } from "./articles";
 export type { CreateArticleInput, UpdateArticleInput } from "./articles";

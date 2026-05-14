@@ -286,3 +286,37 @@ export async function toggleFeature(id: string): Promise<{ success?: boolean; is
 
   return { success: true, is_featured: newStatus };
 }
+
+export async function uploadBlogImage(formData: FormData): Promise<{ success?: boolean; url?: string; error?: string }> {
+  const profile = await getCurrentProfile();
+  if (!profile?.is_admin) return { error: "Unauthorized" };
+
+  const file = formData.get("file") as File | null;
+  if (!file) return { error: "File tidak ditemukan" };
+
+  if (!file.type.startsWith("image/")) return { error: "File harus berupa gambar" };
+
+  const maxSize = 5 * 1024 * 1024;
+  if (file.size > maxSize) return { error: "Ukuran file maksimal 5MB" };
+
+  const supabase = await createClient();
+
+  const fileExt = file.name.split(".").pop() || "jpg";
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+  const filePath = `covers/${fileName}`;
+
+  const { error } = await supabase.storage
+    .from("blog-images")
+    .upload(filePath, file, {
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (error) return { error: "Gagal mengupload gambar" };
+
+  const { data: urlData } = supabase.storage
+    .from("blog-images")
+    .getPublicUrl(filePath);
+
+  return { success: true, url: urlData.publicUrl };
+}

@@ -52,8 +52,8 @@ export function AdminSidebar() {
     <>
       <div className="p-5 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center overflow-hidden shrink-0">
-            <Finny pose="default" size={32} />
+          <div className="w-10 h-10 shrink-0 flex items-center justify-center overflow-hidden">
+            <Finny pose="waving" size={36} className="animate-wave" />
           </div>
           <div className="min-w-0">
             <span className="font-bold text-lg text-text block leading-tight truncate">Fintar</span>

@@ -3,14 +3,15 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
-import { createArticle, updateArticle } from "@/features/admin/actions";
+import { createArticle, updateArticle, uploadBlogImage } from "@/features/admin/actions";
 import type { Article } from "@/types/database";
 import { RichTextEditor } from "./RichTextEditor";
+import { PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 const articleSchema = z.object({
   title: z.string().min(1, "Judul wajib diisi").max(200, "Judul terlalu panjang"),
@@ -25,12 +26,12 @@ const articleSchema = z.object({
 type ArticleFormData = z.infer<typeof articleSchema>;
 
 const CATEGORIES = [
-  "Fundamental",
+  "Investasi",
   "Budgeting",
-  "Saving",
-  "Investing",
-  "Debt",
-  "Tips",
+  "Hutang",
+  "Dana Darurat",
+  "Dasar Keuangan",
+  "Banking",
 ];
 
 interface ArticleFormProps {
@@ -41,8 +42,13 @@ export function ArticleForm({ article }: ArticleFormProps) {
   const router = useRouter();
   const [content, setContent] = useState(article?.content || "");
   const [coverImage, setCoverImage] = useState(article?.cover_image || "");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(article?.cover_image || null);
+  const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showManualUrl, setShowManualUrl] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -83,6 +89,26 @@ export function ArticleForm({ article }: ArticleFormProps) {
     setError(null);
 
     try {
+      let resolvedCoverImage = coverImage || null;
+
+      if (coverFile) {
+        setIsUploading(true);
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", coverFile);
+        const uploadResult = await uploadBlogImage(uploadFormData);
+
+        if ("error" in uploadResult && uploadResult.error) {
+          setError(uploadResult.error);
+          setIsSubmitting(false);
+          setIsUploading(false);
+          return;
+        }
+
+        if ("url" in uploadResult && uploadResult.url) {
+          resolvedCoverImage = uploadResult.url;
+        }
+      }
+
       const tags = data.tags
         ? data.tags.split(",").map((t) => t.trim()).filter(Boolean)
         : [];
@@ -92,7 +118,7 @@ export function ArticleForm({ article }: ArticleFormProps) {
         slug: data.slug || undefined,
         summary: data.summary,
         content,
-        cover_image: coverImage || null,
+        cover_image: resolvedCoverImage,
         category: data.category,
         tags,
         is_featured: data.is_featured ?? false,
@@ -117,6 +143,7 @@ export function ArticleForm({ article }: ArticleFormProps) {
       setError("Terjadi kesalahan saat menyimpan artikel");
     } finally {
       setIsSubmitting(false);
+      setIsUploading(false);
     }
   };
 
@@ -161,12 +188,96 @@ export function ArticleForm({ article }: ArticleFormProps) {
             )}
           </div>
 
-          <Input
-            label="Cover Image URL"
-            value={coverImage}
-            onChange={(e) => setCoverImage(e.target.value)}
-            placeholder="https://example.com/image.jpg"
-          />
+          <div>
+            <label className="block text-sm font-medium text-text mb-1.5">
+              Cover Image
+            </label>
+
+            {coverPreview ? (
+              <div className="relative w-full max-w-xs rounded-2xl overflow-hidden border-2 border-border mb-3">
+                <img
+                  src={coverPreview}
+                  alt="Cover preview"
+                  className="w-full h-40 object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCoverFile(null);
+                    setCoverPreview(null);
+                    setCoverImage("");
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                  className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-white rounded-lg shadow-sm transition-colors"
+                >
+                  <XMarkIcon className="w-4 h-4 text-hearts" />
+                </button>
+              </div>
+            ) : null}
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setCoverFile(file);
+                    setCoverPreview(URL.createObjectURL(file));
+                    setCoverImage("");
+                  }
+                }}
+                className="hidden"
+                id="cover-file-upload"
+              />
+              <label
+                htmlFor="cover-file-upload"
+                className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-dashed border-border hover:border-primary hover:bg-primary-50/30 cursor-pointer transition-colors text-sm font-medium text-muted hover:text-primary"
+              >
+                <PhotoIcon className="w-5 h-5" />
+                {coverFile ? coverFile.name : "Pilih Gambar"}
+              </label>
+
+              <button
+                type="button"
+                onClick={() => setShowManualUrl(!showManualUrl)}
+                className="text-sm text-muted hover:text-primary underline transition-colors self-center"
+              >
+                {showManualUrl ? "Sembunyikan URL" : "Atau masukkan URL"}
+              </button>
+            </div>
+
+            {showManualUrl && (
+              <div className="mt-3">
+                <Input
+                  label="Cover Image URL"
+                  value={coverImage}
+                  onChange={(e) => {
+                    setCoverImage(e.target.value);
+                    if (e.target.value) {
+                      setCoverFile(null);
+                      setCoverPreview(e.target.value);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    } else if (!coverFile) {
+                      setCoverPreview(null);
+                    }
+                  }}
+                  placeholder="https://example.com/image.jpg"
+                />
+              </div>
+            )}
+
+            {isUploading && (
+              <p className="mt-2 text-sm text-primary flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Mengupload...
+              </p>
+            )}
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-text mb-1.5">

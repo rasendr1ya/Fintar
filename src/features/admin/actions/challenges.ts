@@ -197,3 +197,24 @@ export async function deleteChallenge(id: string): Promise<{ success?: boolean; 
 
   return { success: true };
 }
+
+export async function reorderChallenges(orderedIds: string[]): Promise<{ success?: boolean; error?: string }> {
+  const profile = await getCurrentProfile();
+  if (!profile?.is_admin) return { error: "Unauthorized" };
+
+  const supabase = await createClient();
+
+  const updates = orderedIds.map((id, index) =>
+    supabase.from("challenges").update({ order_index: index }).eq("id", id)
+  );
+
+  const results = await Promise.all(updates);
+  const firstError = results.find((r) => r.error);
+  if (firstError?.error) return { error: "Gagal mengurutkan challenge" };
+
+  revalidatePath("/admin/lessons");
+  revalidatePath("/admin");
+  revalidatePath("/learn");
+
+  return { success: true };
+}

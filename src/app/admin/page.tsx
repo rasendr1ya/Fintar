@@ -4,10 +4,10 @@ import Link from "next/link";
 import {
   DocumentTextIcon,
   AcademicCapIcon,
-  QuestionMarkCircleIcon,
   UserGroupIcon,
   CubeIcon,
   PlusIcon,
+  BoltIcon,
 } from "@heroicons/react/24/solid";
 
 export const metadata = {
@@ -77,8 +77,8 @@ export default async function AdminDashboardPage() {
   return (
     <div>
       <div className="flex items-center gap-4 mb-8">
-        <div className="w-16 h-16 bg-finny-light rounded-2xl flex items-center justify-center shrink-0">
-          <Finny pose="waving" size={50} />
+        <div className="w-16 h-16 shrink-0 flex items-center justify-center">
+          <Finny pose="headset" size={56} />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-text">Admin Dashboard</h1>
@@ -111,7 +111,7 @@ export default async function AdminDashboardPage() {
         <StatCard
           title="Challenge"
           value={stats.challenges}
-          icon={QuestionMarkCircleIcon}
+          icon={BoltIcon}
           href="/admin/lessons"
           iconColor="text-streak"
         />
@@ -146,8 +146,10 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="bg-finny-light rounded-2xl p-5 flex items-center gap-4">
-        <Finny pose="reading" size={70} />
+      <div className="bg-white rounded-2xl border border-border p-5 flex items-center gap-4">
+        <div className="shrink-0">
+          <Finny pose="tip" size={70} />
+        </div>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-text">Tips Admin</p>
           <p className="text-sm text-muted">
