@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FireIcon, BoltIcon } from "@heroicons/react/24/solid";
+import { BoltIcon } from "@heroicons/react/24/solid";
 import { getDailyQuests } from "@/features/quests/actions";
 import { MiniLeaderboard } from "@/features/leaderboard/components/MiniLeaderboard";
 
@@ -64,9 +64,9 @@ export async function RightSidebar() {
       {/* Finny Ad / Tip */}
       <div className="bg-white rounded-2xl border-2 border-gray-200 p-5 relative overflow-hidden">
         <div className="relative z-10">
-          <h3 className="font-bold text-gray-700 mb-2">Finny's Tip</h3>
+          <h3 className="font-bold text-gray-700 mb-2">Finny&apos;s Tip</h3>
           <p className="text-sm text-gray-600 leading-relaxed mb-4">
-            "Jangan lupa catat pengeluaran kecil. Kopi 20rb sehari = 600rb sebulan lho!"
+            &quot;Jangan lupa catat pengeluaran kecil. Kopi 20rb sehari = 600rb sebulan lho!&quot;
           </p>
           <Link href="/blog" className="text-primary font-bold text-sm uppercase hover:underline">
             Learn More

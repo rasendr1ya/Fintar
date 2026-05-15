@@ -38,15 +38,15 @@ export default function Error({
       </div>
 
       {/* Smoke/steam particles */}
-      {[...Array(6)].map((_, i) => (
+      {[38, 47, 42, 35, 50, 44].map((bottom, i) => (
         <div
           key={i}
           className="absolute w-4 h-4 bg-gray-400/20 rounded-full blur-sm animate-float"
           style={{
-            bottom: `${30 + Math.random() * 20}%`,
-            left: `${40 + Math.random() * 20}%`,
-            animationDelay: `${Math.random() * 2}s`,
-            animationDuration: `${3 + Math.random() * 2}s`,
+            bottom: `${bottom}%`,
+            left: `${40 + (i * 3)}%`,
+            animationDelay: `${i * 0.3}s`,
+            animationDuration: `${3 + i * 0.4}s`,
           }}
         />
       ))}

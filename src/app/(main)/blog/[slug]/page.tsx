@@ -27,6 +27,7 @@ export default async function BlogPostPage({ params }: BlogPostProps) {
             src={article.cover_image}
             alt={article.title}
             fill
+            unoptimized
             className="object-cover opacity-60"
           />
         )}

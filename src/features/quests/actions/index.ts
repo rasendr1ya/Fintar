@@ -74,6 +74,7 @@ export async function claimQuestReward(userQuestId: string) {
     .eq("id", userQuestId);
 
   revalidatePath("/learn");
+  revalidatePath("/profile");
   revalidatePath("/quests");
   revalidatePath("/leaderboard");
 

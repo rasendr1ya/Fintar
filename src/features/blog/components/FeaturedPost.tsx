@@ -26,6 +26,7 @@ export function FeaturedPost({ article }: FeaturedPostProps) {
           src={imgSrc}
           alt={article.title}
           fill
+          unoptimized
           onError={() => setImgSrc(PLACEHOLDER_IMAGE)}
           className="object-cover opacity-60 transition-transform duration-700 group-hover:scale-105"
         />

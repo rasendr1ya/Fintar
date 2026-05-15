@@ -64,6 +64,8 @@ export async function buyHeartRefill() {
 
   revalidatePath("/shop");
   revalidatePath("/learn");
+  revalidatePath("/profile");
+  revalidatePath("/quests");
   revalidatePath("/lesson", "layout");
 
   return {
@@ -135,6 +137,7 @@ export async function buyStreakFreeze() {
 
   revalidatePath("/shop");
   revalidatePath("/learn");
+  revalidatePath("/profile");
 
   return {
     success: true,

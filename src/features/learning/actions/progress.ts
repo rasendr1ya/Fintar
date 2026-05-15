@@ -26,6 +26,7 @@ export async function refillHearts() {
     .eq("id", user.id);
 
   revalidatePath("/learn");
+  revalidatePath("/profile");
   revalidatePath("/lesson/[id]", "page");
   return { success: true };
 }

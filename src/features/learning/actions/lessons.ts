@@ -335,7 +335,6 @@ export async function completeLesson(
     coins: profile.coins + coinsEarned,
     streak: streakResult.newStreak,
     last_active_at: streakResult.lastActiveAt,
-    current_unit_id: null,
   };
 
   if (streakResult.consumeFreeze) {
@@ -382,6 +381,7 @@ export async function completeLesson(
   }
 
   revalidatePath("/learn");
+  revalidatePath("/profile");
   revalidatePath("/quests");
   revalidatePath("/leaderboard");
   revalidatePath("/lesson/[id]", "page");

@@ -37,8 +37,8 @@ export function LessonContent({
   challenges,
   initialHearts,
   maxHearts,
-  userXp,
-  initialStreak,
+  userXp: _userXp,
+  initialStreak: _initialStreak,
 }: LessonContentProps) {
   const router = useRouter();
   const { playSound, playWithHaptic, triggerHaptic } = useFintarSound();

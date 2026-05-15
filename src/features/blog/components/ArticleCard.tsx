@@ -26,6 +26,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
           src={imgSrc}
           alt={article.title}
           fill
+          unoptimized
           onError={() => setImgSrc(PLACEHOLDER_IMAGE)}
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />

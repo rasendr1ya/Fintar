@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Finny } from "@/components/mascot/Finny";
 
@@ -8,15 +7,20 @@ export default function NotFound() {
       
       {/* Stars in the sky */}
       <div className="absolute inset-0 pointer-events-none">
-        {[...Array(40)].map((_, i) => (
+        {Array.from({ length: 40 }, (_, i) => ({
+          top: ((i * 17 + 13) % 60),
+          left: ((i * 23 + 7) % 100),
+          delay: (i % 5) * 0.6,
+          opacity: 0.3 + ((i * 7) % 10) / 14,
+        })).map((star, i) => (
           <div
             key={i}
             className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
             style={{
-              top: `${Math.random() * 60}%`,
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              opacity: Math.random() * 0.7 + 0.3,
+              top: `${star.top}%`,
+              left: `${star.left}%`,
+              animationDelay: `${star.delay}s`,
+              opacity: star.opacity,
             }}
           />
         ))}
@@ -130,15 +134,15 @@ export default function NotFound() {
       </div>
 
       {/* Fireflies */}
-      {[...Array(6)].map((_, i) => (
+      {[25, 45, 30, 55, 20, 40].map((bottom, i) => (
         <div
           key={i}
           className="absolute w-2 h-2 bg-yellow-200 rounded-full animate-pulse"
           style={{
-            bottom: `${15 + Math.random() * 25}%`,
-            left: `${10 + Math.random() * 80}%`,
-            animationDelay: `${Math.random() * 2}s`,
-            animationDuration: `${1.5 + Math.random()}s`,
+            bottom: `${bottom}%`,
+            left: `${10 + i * 14}%`,
+            animationDelay: `${i * 0.3}s`,
+            animationDuration: `${1.5 + i * 0.2}s`,
             opacity: 0.7,
             boxShadow: '0 0 10px 3px rgba(254, 240, 138, 0.6)',
           }}
