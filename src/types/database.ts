@@ -26,6 +26,17 @@ export interface Profile {
   updated_at: string;
 }
 
+/**
+ * Read-only projection of `profiles` exposed via the
+ * `public.leaderboard_profiles` database view. Only contains
+ * non-sensitive columns safe to share with other authenticated users.
+ */
+export interface LeaderboardProfile {
+  id: string;
+  username: string | null;
+  xp: number;
+}
+
 export interface Unit {
   id: string;
   title: string;

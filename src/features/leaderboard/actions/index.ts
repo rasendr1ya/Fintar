@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, getCurrentUser, createServiceClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { calculateLevel } from "@/lib/utils";
 
 export type LeaderboardEntry = {
@@ -21,10 +21,12 @@ export async function getLeaderboard(): Promise<LeaderboardData> {
   const user = await getCurrentUser();
   if (!user) return { topUsers: [], currentUserEntry: null };
 
-  const serviceSupabase = createServiceClient();
+  const supabase = await createClient();
 
-  const { data: topUsers, error } = await serviceSupabase
-    .from("profiles")
+  // Top 20 leaderboard — uses the `leaderboard_profiles` view which
+  // exposes only id, username, xp (no RLS bypass needed).
+  const { data: topUsers, error } = await supabase
+    .from("leaderboard_profiles")
     .select("id, username, xp")
     .order("xp", { ascending: false })
     .limit(20);
@@ -51,8 +53,8 @@ export async function getLeaderboard(): Promise<LeaderboardData> {
 
   let currentUserEntry: LeaderboardEntry | null = null;
   if (!isUserInTop20) {
-    const supabase = await createClient();
-
+    // Reading the caller's own profile is allowed by the existing RLS
+    // policy `auth.uid() = id` on `profiles`.
     const { data: profile } = await supabase
       .from("profiles")
       .select("id, username, xp")
@@ -60,8 +62,9 @@ export async function getLeaderboard(): Promise<LeaderboardData> {
       .single();
 
     if (profile) {
-      const { count } = await serviceSupabase
-        .from("profiles")
+      // Rank counter — also uses the public view.
+      const { count } = await supabase
+        .from("leaderboard_profiles")
         .select("*", { count: "exact", head: true })
         .gt("xp", profile.xp);
 
