@@ -2,6 +2,7 @@
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { calculateLevel } from "@/lib/utils";
+import { LEADERBOARD_LIMIT } from "@/lib/constants";
 
 export type LeaderboardEntry = {
   rank: number;
@@ -29,7 +30,7 @@ export async function getLeaderboard(): Promise<LeaderboardData> {
     .from("leaderboard_profiles")
     .select("id, username, xp")
     .order("xp", { ascending: false })
-    .limit(20);
+    .limit(LEADERBOARD_LIMIT);
 
   if (error) {
     console.error("[getLeaderboard] Error fetching top users:", error.message);

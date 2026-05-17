@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
@@ -194,11 +195,13 @@ export function ArticleForm({ article }: ArticleFormProps) {
             </label>
 
             {coverPreview ? (
-              <div className="relative w-full max-w-xs rounded-2xl overflow-hidden border-2 border-border mb-3">
-                <img
+              <div className="relative w-full max-w-xs h-40 rounded-2xl overflow-hidden border-2 border-border mb-3">
+                <Image
                   src={coverPreview}
                   alt="Cover preview"
-                  className="w-full h-40 object-cover"
+                  fill
+                  unoptimized
+                  className="object-cover"
                 />
                 <button
                   type="button"

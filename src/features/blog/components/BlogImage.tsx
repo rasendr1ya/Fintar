@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 interface BlogImageProps {
@@ -23,9 +24,12 @@ export function BlogImage({ src, alt, className }: BlogImageProps) {
   };
 
   return (
-    <img
+    <Image
       src={imgSrc}
       alt={alt}
+      width={1200}
+      height={630}
+      unoptimized
       onError={handleError}
       className={className}
     />

@@ -4,7 +4,7 @@ import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { calculateLevel, calculateMaxHearts } from "@/lib/utils";
 import { calculateNewStreak } from "@/lib/streak";
-import { BASE_HEARTS } from "@/lib/constants";
+import { BASE_HEARTS, HEART_REFILL_INTERVAL_MS } from "@/lib/constants";
 import { updateQuestProgress } from "@/features/quests/actions";
 import type { Challenge, UserProgress } from "@/types/database";
 
@@ -425,7 +425,7 @@ export async function reduceHearts(): Promise<{ hearts: number; error?: string }
   if (newHearts < maxHearts) {
     const now = new Date();
     const lastRefill = profile.last_heart_refill_at ? new Date(profile.last_heart_refill_at) : null;
-    const hoursElapsed = lastRefill ? Math.floor((now.getTime() - lastRefill.getTime()) / (1000 * 60 * 60)) : 0;
+    const hoursElapsed = lastRefill ? Math.floor((now.getTime() - lastRefill.getTime()) / HEART_REFILL_INTERVAL_MS) : 0;
 
     if (!lastRefill || hoursElapsed > 0) {
       updateData.last_heart_refill_at = now.toISOString();
@@ -488,7 +488,7 @@ export async function checkAndRefillHearts(): Promise<{ hearts: number; maxHeart
 
   const now = new Date();
   const lastRefill = new Date(profile.last_heart_refill_at);
-  const hoursElapsed = Math.floor((now.getTime() - lastRefill.getTime()) / (1000 * 60 * 60));
+  const hoursElapsed = Math.floor((now.getTime() - lastRefill.getTime()) / HEART_REFILL_INTERVAL_MS);
 
   // Early return jika belum lewat 1 jam
   if (hoursElapsed === 0) {
@@ -501,7 +501,7 @@ export async function checkAndRefillHearts(): Promise<{ hearts: number; maxHeart
     .from("profiles")
     .update({
       hearts: newHearts,
-      last_heart_refill_at: new Date(lastRefill.getTime() + hoursElapsed * 60 * 60 * 1000).toISOString(),
+      last_heart_refill_at: new Date(lastRefill.getTime() + hoursElapsed * HEART_REFILL_INTERVAL_MS).toISOString(),
     })
     .eq("id", user.id);
 

@@ -2,7 +2,6 @@
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { calculateMaxHearts } from "@/lib/utils";
 import { HEART_REFILL_PRICE } from "@/lib/constants";
 
 export async function buyHeartRefill() {
@@ -11,37 +10,22 @@ export async function buyHeartRefill() {
 
   const supabase = await createClient();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("coins, xp, hearts")
-    .eq("id", user.id)
-    .maybeSingle();
+  const { data: rpcResult, error: rpcError } = await supabase.rpc(
+    "buy_heart_refill",
+    {
+      p_user_id: user.id,
+      p_price: HEART_REFILL_PRICE,
+    }
+  );
 
-  if (!profile) return { error: "Profile not found" };
-
-  if (profile.coins < HEART_REFILL_PRICE) {
-    return { error: `Koin tidak cukup! Kamu butuh ${HEART_REFILL_PRICE} koin.` };
+  if (rpcError || !rpcResult || rpcResult.length === 0) {
+    return { error: "Gagal memproses pembelian" };
   }
 
-  const maxHearts = calculateMaxHearts(profile.xp);
+  const result = rpcResult[0];
 
-  if (profile.hearts >= maxHearts) {
-    return { error: "Hearts kamu sudah penuh!" };
-  }
-
-  const { data: updatedProfiles, error: updateError } = await supabase
-    .from("profiles")
-    .update({
-      coins: profile.coins - HEART_REFILL_PRICE,
-      hearts: maxHearts,
-      last_heart_refill_at: new Date().toISOString(),
-    })
-    .eq("id", user.id)
-    .gte("coins", HEART_REFILL_PRICE)
-    .select();
-
-  if (updateError || !updatedProfiles || updatedProfiles.length === 0) {
-    return { error: "Coins tidak cukup atau transaksi duplikat." };
+  if (!result.success) {
+    return { error: result.error_msg ?? "Pembelian gagal" };
   }
 
   const { data: heartRefillItem } = await supabase
@@ -70,8 +54,8 @@ export async function buyHeartRefill() {
 
   return {
     success: true,
-    newCoins: profile.coins - HEART_REFILL_PRICE,
-    newHearts: maxHearts,
+    newCoins: result.new_coins,
+    newHearts: result.new_hearts,
   };
 }
 
