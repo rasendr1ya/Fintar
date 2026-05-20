@@ -2,6 +2,7 @@
 
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { MAX_IMAGE_UPLOAD_BYTES, WORDS_PER_MINUTE } from "@/lib/constants";
 import type { Article } from "@/types/database";
 
 function generateSlug(title: string): string {
@@ -14,9 +15,8 @@ function generateSlug(title: string): string {
 }
 
 function calculateReadTime(content: string): number {
-  const wordsPerMinute = 200;
   const wordCount = content.split(/\s+/).length;
-  return Math.max(1, Math.ceil(wordCount / wordsPerMinute));
+  return Math.max(1, Math.ceil(wordCount / WORDS_PER_MINUTE));
 }
 
 export async function getArticlesAdmin(): Promise<{ data?: Article[]; error?: string }> {
@@ -296,8 +296,7 @@ export async function uploadBlogImage(formData: FormData): Promise<{ success?: b
 
   if (!file.type.startsWith("image/")) return { error: "File harus berupa gambar" };
 
-  const maxSize = 5 * 1024 * 1024;
-  if (file.size > maxSize) return { error: "Ukuran file maksimal 5MB" };
+  if (file.size > MAX_IMAGE_UPLOAD_BYTES) return { error: "Ukuran file maksimal 5MB" };
 
   const supabase = await createClient();
 

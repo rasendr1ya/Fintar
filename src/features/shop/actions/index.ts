@@ -28,15 +28,20 @@ export async function buyHeartRefill() {
     return { error: result.error_msg ?? "Pembelian gagal" };
   }
 
-  const { data: heartRefillItem } = await supabase
+  const { data: heartRefillItem, error: itemError } = await supabase
     .from("shop_items")
     .select("id")
     .eq("type", "HEART_REFILL")
     .eq("is_active", true)
     .maybeSingle();
 
+  if (itemError) {
+    console.error("[buyHeartRefill] Item fetch error:", itemError);
+    return { error: "Gagal memuat item toko" };
+  }
+
   if (heartRefillItem) {
-    await supabase
+    const { error: inventoryError } = await supabase
       .from("user_inventory")
       .insert({
         user_id: user.id,
@@ -44,6 +49,11 @@ export async function buyHeartRefill() {
         quantity: 1,
         purchased_at: new Date().toISOString(),
       });
+
+    if (inventoryError) {
+      console.error("[buyHeartRefill] Inventory insert error:", inventoryError);
+      return { error: "Refill berhasil, tapi inventory gagal dicatat" };
+    }
   }
 
   revalidatePath("/shop");
@@ -66,23 +76,23 @@ export async function buyStreakFreeze() {
   const supabase = await createClient();
 
   // 1. Fetch profile
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("coins, streak_freeze_active")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!profile) return { error: "Profile not found" };
+  if (profileError || !profile) return { error: "Profile not found" };
 
   // 2. Fetch Streak Freeze item
-  const { data: item } = await supabase
+  const { data: item, error: itemError } = await supabase
     .from("shop_items")
     .select("id, price_coins")
     .eq("type", "STREAK_FREEZE")
     .eq("is_active", true)
     .maybeSingle();
 
-  if (!item) return { error: "Item tidak tersedia" };
+  if (itemError || !item) return { error: "Item tidak tersedia" };
 
   // 3. Guard: sudah aktif
   if (profile.streak_freeze_active) {
@@ -110,7 +120,7 @@ export async function buyStreakFreeze() {
   }
 
   // 6. Insert ke user_inventory
-  await supabase
+  const { error: inventoryError } = await supabase
     .from("user_inventory")
     .insert({
       user_id: user.id,
@@ -118,6 +128,11 @@ export async function buyStreakFreeze() {
       quantity: 1,
       purchased_at: new Date().toISOString(),
     });
+
+  if (inventoryError) {
+    console.error("[buyStreakFreeze] Inventory insert error:", inventoryError);
+    return { error: "Streak Freeze aktif, tapi inventory gagal dicatat" };
+  }
 
   revalidatePath("/shop");
   revalidatePath("/learn");

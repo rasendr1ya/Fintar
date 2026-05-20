@@ -4,7 +4,12 @@ import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { calculateLevel, calculateMaxHearts } from "@/lib/utils";
 import { calculateNewStreak } from "@/lib/streak";
-import { BASE_HEARTS, HEART_REFILL_INTERVAL_MS } from "@/lib/constants";
+import {
+  BASE_HEARTS,
+  FUNDAMENTAL_UNIT_MAX_ORDER,
+  HEART_REFILL_INTERVAL_MS,
+  MAX_LESSONS_PER_UNIT,
+} from "@/lib/constants";
 import { updateQuestProgress } from "@/features/quests/actions";
 import type { Challenge, UserProgress } from "@/types/database";
 
@@ -78,11 +83,16 @@ export async function getUnitsWithLessons(): Promise<LearningPathData> {
   const supabase = await createClient();
 
   // 1. Fetch profile untuk personalisasi
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("financial_goal")
     .eq("id", user.id)
     .maybeSingle();
+
+  if (profileError) {
+    console.error("Error fetching profile:", profileError);
+    return { units: [], completedLessonIds: [], error: "Failed to fetch profile" };
+  }
 
   // 2. Fetch semua units yang aktif
   const { data: unitsData, error: unitsError } = await supabase
@@ -109,10 +119,15 @@ export async function getUnitsWithLessons(): Promise<LearningPathData> {
   }
 
   // 4. Fetch completed lessons untuk user ini
-  const { data: progressData } = await supabase
+  const { data: progressData, error: progressError } = await supabase
     .from("user_progress")
     .select("lesson_id")
     .eq("user_id", user.id);
+
+  if (progressError) {
+    console.error("Error fetching user progress:", progressError);
+    return { units: [], completedLessonIds: [], error: "Failed to fetch progress" };
+  }
 
   const completedLessonIds = progressData?.map((p) => p.lesson_id) ?? [];
 
@@ -120,7 +135,7 @@ export async function getUnitsWithLessons(): Promise<LearningPathData> {
   const unitsWithLessons: UnitWithLessons[] = unitsData.map((unit) => {
     const unitLessons = lessonsData
       .filter((l) => l.unit_id === unit.id)
-      .slice(0, 3);
+      .slice(0, MAX_LESSONS_PER_UNIT);
 
     return {
       ...unit,
@@ -140,8 +155,8 @@ export async function getUnitsWithLessons(): Promise<LearningPathData> {
     ? (GOAL_TAG_MAP[financialGoal] ?? [])
     : [];
 
-  const fundamentals = unitsWithContent.filter((u) => u.order_index <= 3);
-  const rest = unitsWithContent.filter((u) => u.order_index > 3);
+  const fundamentals = unitsWithContent.filter((u) => u.order_index <= FUNDAMENTAL_UNIT_MAX_ORDER);
+  const rest = unitsWithContent.filter((u) => u.order_index > FUNDAMENTAL_UNIT_MAX_ORDER);
 
   const hasTagOverlap = (unitTags: string[]) =>
     unitTags.some((tag) => relevantTags.includes(tag));
@@ -186,14 +201,14 @@ export async function getChallengesByLessonId(
 
   const supabase = await createClient();
 
-  const { data: lesson } = await supabase
+  const { data: lesson, error: lessonCheckError } = await supabase
     .from("lessons")
     .select("id")
     .eq("id", lessonId)
     .eq("is_deleted", false)
     .single();
 
-  if (!lesson) return { challenges: [], error: "Lesson not found" };
+  if (lessonCheckError || !lesson) return { challenges: [], error: "Lesson not found" };
 
   const { data: challenges, error } = await supabase
     .from("challenges")
@@ -227,8 +242,8 @@ export async function completeLesson(
       coinsEarned: 0,
       didLevelUp: false,
       newLevel: 1,
-      newMaxHearts: 5,
-      newHearts: 5,
+      newMaxHearts: BASE_HEARTS,
+      newHearts: BASE_HEARTS,
       newStreak: 0,
       newXp: 0,
       newCoins: 0,
@@ -253,8 +268,8 @@ export async function completeLesson(
       coinsEarned: 0,
       didLevelUp: false,
       newLevel: 1,
-      newMaxHearts: 5,
-      newHearts: 5,
+      newMaxHearts: BASE_HEARTS,
+      newHearts: BASE_HEARTS,
       newStreak: 0,
       newXp: 0,
       newCoins: 0,
@@ -263,12 +278,29 @@ export async function completeLesson(
   }
 
   // 2. Idempotency check — jika sudah pernah selesai, skip update stats
-  const { data: existingProgress } = await supabase
+  const { data: existingProgress, error: existingProgressError } = await supabase
     .from("user_progress")
     .select("id")
     .eq("user_id", user.id)
     .eq("lesson_id", lessonId)
     .maybeSingle();
+
+  if (existingProgressError) {
+    console.error("Error checking existing progress:", existingProgressError);
+    return {
+      success: false,
+      xpEarned: 0,
+      coinsEarned: 0,
+      didLevelUp: false,
+      newLevel: calculateLevel(profile.xp),
+      newMaxHearts: calculateMaxHearts(profile.xp),
+      newHearts: profile.hearts,
+      newStreak: profile.streak,
+      newXp: profile.xp,
+      newCoins: profile.coins,
+      error: "Failed to check progress",
+    };
+  }
 
   const alreadyCompleted = !!existingProgress;
 
@@ -282,7 +314,22 @@ export async function completeLesson(
         completed_at: new Date().toISOString(),
       });
 
-    if (insertError && insertError.code !== "23505") {
+    if (insertError) {
+      if (insertError.code === "23505") {
+        return {
+          success: true,
+          xpEarned: 0,
+          coinsEarned: 0,
+          didLevelUp: false,
+          newLevel: calculateLevel(profile.xp),
+          newMaxHearts: calculateMaxHearts(profile.xp),
+          newHearts: profile.hearts,
+          newStreak: profile.streak,
+          newXp: profile.xp,
+          newCoins: profile.coins,
+        };
+      }
+
       console.error("Error inserting user_progress:", insertError);
       return {
         success: false,

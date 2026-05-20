@@ -11,12 +11,26 @@ function isHtmlContent(content: string): boolean {
   return /<(p|h[1-6]|ul|ol|li|blockquote|div|img|a|strong|em)\b[^>]*>/i.test(content);
 }
 
+/**
+ * Tambahkan inline style responsive ke semua <img> dalam konten HTML.
+ * Konten berasal dari TipTap admin editor — sumber terpercaya.
+ */
+function processHtmlImages(html: string): string {
+  return html.replace(
+    /<img\b([^>]*?)(\s*\/?>)/gi,
+    (match, attrs, closing) => {
+      if (/style\s*=/i.test(attrs)) return match;
+      return `<img${attrs} style="max-width: 100%; height: auto; border-radius: 0.5rem;"${closing}`;
+    }
+  );
+}
+
 export function ArticleContent({ content, className }: ArticleContentProps) {
   if (isHtmlContent(content)) {
     return (
       <div
         className={className}
-        dangerouslySetInnerHTML={{ __html: content }}
+        dangerouslySetInnerHTML={{ __html: processHtmlImages(content) }}
       />
     );
   }

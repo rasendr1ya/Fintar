@@ -63,6 +63,7 @@ export function LessonContent({
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showErrorRetry, setShowErrorRetry] = useState(false);
   const [heartAnimKey, setHeartAnimKey] = useState(0);
+  const [hadMistake, setHadMistake] = useState(false);
 
   // Level up & completion rewards
   const [levelUpData, setLevelUpData] = useState<{
@@ -156,6 +157,7 @@ export function LessonContent({
     } else {
       playWithHaptic("wrong");
       setPhase("WRONG");
+      setHadMistake(true);
 
       // Reduce hearts via server action, lalu sync ke UI
       const result = await reduceHearts();
@@ -271,7 +273,7 @@ export function LessonContent({
 
   // Lesson Complete Screen
   if (phase === "COMPLETE") {
-    const isPerfect = answeredCorrectly.size === totalChallenges;
+    const isPerfect = answeredCorrectly.size === totalChallenges && !hadMistake;
     const xpEarned = answeredCorrectly.size * XP_PER_CHALLENGE;
 
     return (

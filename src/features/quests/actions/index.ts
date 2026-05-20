@@ -2,7 +2,6 @@
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { calculateLevel, calculateMaxHearts } from "@/lib/utils";
 
 export async function getDailyQuests() {
   const user = await getCurrentUser();
@@ -25,53 +24,24 @@ export async function claimQuestReward(userQuestId: string) {
 
   const supabase = await createClient();
 
-  const { data: userQuest } = await supabase
-    .from("user_quests")
-    .select("*, quests(*)")
-    .eq("id", userQuestId)
-    .eq("user_id", user.id)
-    .single();
+  const { data: rpcResult, error: rpcError } = await supabase.rpc(
+    "claim_quest_reward",
+    {
+      p_user_id: user.id,
+      p_user_quest_id: userQuestId,
+    }
+  );
 
-  if (!userQuest) return { error: "Quest not found" };
-  if (!userQuest.is_completed) return { error: "Quest not yet completed" };
-  if (userQuest.is_claimed) return { error: "Reward already claimed" };
-
-  const quest = userQuest.quests;
-  if (!quest) return { error: "Quest data not found" };
-
-  const { data: currentProfile } = await supabase
-    .from("profiles")
-    .select("xp, coins, hearts")
-    .eq("id", user.id)
-    .single();
-
-  if (!currentProfile) return { error: "Profile not found" };
-
-  const oldLevel = calculateLevel(currentProfile.xp);
-  const newXp = currentProfile.xp + quest.reward_xp;
-  const newLevel = calculateLevel(newXp);
-  const leveledUp = newLevel > oldLevel;
-  const newCoins = currentProfile.coins + quest.reward_coins;
-
-  const updateData: Record<string, unknown> = {
-    xp: newXp,
-    coins: newCoins,
-  };
-
-  if (leveledUp) {
-    updateData.hearts = calculateMaxHearts(newXp);
-    updateData.last_heart_refill_at = new Date().toISOString();
+  if (rpcError || !rpcResult || rpcResult.length === 0) {
+    console.error("[claimQuestReward] RPC error:", rpcError);
+    return { error: "Gagal claim reward quest" };
   }
 
-  await supabase
-    .from("profiles")
-    .update(updateData)
-    .eq("id", user.id);
+  const result = rpcResult[0];
 
-  await supabase
-    .from("user_quests")
-    .update({ is_claimed: true })
-    .eq("id", userQuestId);
+  if (!result.success) {
+    return { error: result.error_msg ?? "Gagal claim reward quest" };
+  }
 
   revalidatePath("/learn");
   revalidatePath("/profile");
@@ -80,9 +50,9 @@ export async function claimQuestReward(userQuestId: string) {
 
   return {
     success: true,
-    xpEarned: quest.reward_xp,
-    coinsEarned: quest.reward_coins,
-    leveledUp,
+    xpEarned: result.xp_earned,
+    coinsEarned: result.coins_earned,
+    leveledUp: result.leveled_up,
   };
 }
 
@@ -93,39 +63,58 @@ export async function updateQuestProgress(type: string, amount: number = 1) {
   const supabase = await createClient();
 
   // Bootstrap: pastikan quest hari ini sudah ada sebelum update progress
-  await supabase.rpc("get_or_create_daily_quests", { p_user_id: user.id });
+  const { error: bootstrapError } = await supabase.rpc("get_or_create_daily_quests", { p_user_id: user.id });
+  if (bootstrapError) {
+    console.error("[updateQuestProgress] Bootstrap error:", bootstrapError);
+    return { error: "Gagal menyiapkan quest harian" };
+  }
 
   const today = new Date().toISOString().split("T")[0];
 
-  const { data: quests } = await supabase
+  const { data: quests, error: questsError } = await supabase
     .from("quests")
     .select("id")
     .eq("type", type)
     .eq("is_daily", true);
 
+  if (questsError) {
+    console.error("[updateQuestProgress] Quests fetch error:", questsError);
+    return { error: "Gagal memuat quest" };
+  }
+
   if (!quests || quests.length === 0) return { success: true };
 
   for (const quest of quests) {
-    const { data: existingUQ } = await supabase
+    const { data: existingUQ, error: userQuestError } = await supabase
       .from("user_quests")
       .select("id, progress, is_completed")
       .eq("user_id", user.id)
       .eq("quest_id", quest.id)
       .eq("assigned_at", today)
-      .single();
+      .maybeSingle();
+
+    if (userQuestError) {
+      console.error("[updateQuestProgress] User quest fetch error:", userQuestError);
+      return { error: "Gagal memuat progress quest" };
+    }
 
     if (existingUQ) {
       if (existingUQ.is_completed) continue;
-      const { data: questData } = await supabase
+      const { data: questData, error: questDataError } = await supabase
         .from("quests")
         .select("target_value")
         .eq("id", quest.id)
         .single();
 
-      const newProgress = (existingUQ.progress || 0) + amount;
-      const isCompleted = questData && newProgress >= questData.target_value;
+      if (questDataError || !questData) {
+        console.error("[updateQuestProgress] Quest target fetch error:", questDataError);
+        return { error: "Gagal memuat target quest" };
+      }
 
-      await supabase
+      const newProgress = (existingUQ.progress || 0) + amount;
+      const isCompleted = newProgress >= questData.target_value;
+
+      const { error: updateError } = await supabase
         .from("user_quests")
         .update({
           progress: newProgress,
@@ -133,6 +122,11 @@ export async function updateQuestProgress(type: string, amount: number = 1) {
           completed_at: isCompleted ? new Date().toISOString() : null,
         })
         .eq("id", existingUQ.id);
+
+      if (updateError) {
+        console.error("[updateQuestProgress] Progress update error:", updateError);
+        return { error: "Gagal memperbarui progress quest" };
+      }
     }
   }
 
