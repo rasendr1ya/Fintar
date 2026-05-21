@@ -1,9 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
 import { getArticleBySlug } from "@/features/blog/actions";
 import { ArticleContent } from "@/features/blog/components";
-import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, ClockIcon } from "@heroicons/react/24/outline";
+import { getPublisherDisplay } from "@/features/blog/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -55,11 +58,34 @@ export default async function BlogPostPage({ params }: BlogPostProps) {
             <h1 className="text-3xl md:text-5xl font-black text-text leading-tight mb-4">
               {article.title}
             </h1>
-            <div className="flex items-center gap-4 text-sm text-muted">
-              <span>{article.author || "Tim Fintar"}</span>
-              <span>•</span>
-              <span>{article.read_time_minutes} menit baca</span>
-            </div>
+            {(() => {
+              const display = getPublisherDisplay(article.publisher, article.author);
+              const publishDate = format(new Date(article.created_at), "d MMM yyyy", { locale: id });
+
+              return (
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                      display.isFintarTeam
+                        ? "bg-primary text-white"
+                        : "bg-slate-200 text-slate-700"
+                    }`}
+                  >
+                    {display.initials}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-text/70 flex-wrap">
+                    <span className="font-semibold text-text">{display.label}</span>
+                    <span className="opacity-60">•</span>
+                    <span>{publishDate}</span>
+                    <span className="opacity-60">•</span>
+                    <span className="inline-flex items-center gap-1">
+                      <ClockIcon className="w-4 h-4" />
+                      {article.read_time_minutes} menit baca
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>

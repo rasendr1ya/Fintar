@@ -43,6 +43,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
     pathname.startsWith("/verify-code") ||
+    pathname.startsWith("/verify-admin-pin") ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password");
 
@@ -93,7 +94,7 @@ export async function updateSession(request: NextRequest) {
   if (user && isAdminRoute) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_admin")
+      .select("is_admin, admin_pin")
       .eq("id", user.id)
       .single();
 
@@ -101,6 +102,16 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = "/learn";
       return NextResponse.redirect(url);
+    }
+
+    // Admin dengan PIN ter-set harus verifikasi dulu
+    if (profile.admin_pin) {
+      const adminPinVerified = request.cookies.get("admin_pin_verified")?.value === "true";
+      if (!adminPinVerified) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/verify-admin-pin";
+        return NextResponse.redirect(url);
+      }
     }
   }
 

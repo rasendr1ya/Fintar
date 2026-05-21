@@ -48,7 +48,7 @@ export function LeaderboardContent({ data }: LeaderboardContentProps) {
           <TrophyIcon className="w-8 h-8" />
         </div>
         <div>
-          <h2 className="font-bold text-lg text-yellow-800">Liga Sultan</h2>
+          <h2 className="font-bold text-lg text-yellow-800">Liga Mahasiswa</h2>
           <p className="text-sm text-yellow-700">20 besar minggu ini</p>
         </div>
       </div>

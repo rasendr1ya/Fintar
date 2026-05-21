@@ -2,7 +2,7 @@ import { SVGProps } from "react";
 
 interface FinnyProps extends SVGProps<SVGSVGElement> {
   size?: number;
-  pose?: "default" | "celebrate" | "thinking" | "sad" | "waving" | "reading" | "headset" | "writing" | "teaching" | "tip";
+  pose?: "default" | "celebrate" | "thinking" | "sad" | "waving" | "reading" | "headset" | "writing" | "teaching" | "tip" | "shopping";
 }
 
 export function Finny({ size = 200, pose = "default", className, ...props }: FinnyProps) {
@@ -19,6 +19,8 @@ export function Finny({ size = 200, pose = "default", className, ...props }: Fin
         return { left: "rotate(15deg)", right: "rotate(-15deg)", leftY: 5, rightY: 5, leftOriginX: 70, leftOriginY: 140, rightOriginX: 130, rightOriginY: 140 };
       case "reading":
         return { left: "rotate(-30deg)", right: "rotate(30deg)", leftY: -10, rightY: -10, leftOriginX: 70, leftOriginY: 140, rightOriginX: 130, rightOriginY: 140 };
+      case "shopping":
+        return { left: "rotate(25deg)", right: "rotate(-25deg)", leftY: 5, rightY: 5, leftOriginX: 70, leftOriginY: 140, rightOriginX: 130, rightOriginY: 140 };
       case "headset":
         return { left: "rotate(-10deg)", right: "rotate(10deg)", leftY: -5, rightY: -5, leftOriginX: 70, leftOriginY: 140, rightOriginX: 130, rightOriginY: 140 };
       case "writing":
@@ -60,9 +62,9 @@ export function Finny({ size = 200, pose = "default", className, ...props }: Fin
       case "thinking":
         return "M 95 107 L 105 107";
       case "reading":
-        return "M 95 107 L 105 107";
+        return "M 90 105 Q 100 113 110 105";
       case "writing":
-        return "M 95 107 L 105 107";
+        return "M 90 105 Q 100 113 110 105";
       default:
         return "M 90 105 Q 100 112 110 105";
     }
@@ -347,6 +349,25 @@ export function Finny({ size = 200, pose = "default", className, ...props }: Fin
           {/* Pointer tip */}
           <circle cx="175" cy="175" r="3" fill="#EF4444" />
         </>
+      )}
+
+      {/* Shopping basket for shopping pose */}
+      {pose === "shopping" && (
+        <g transform="translate(0, 8)">
+          <path
+            d="M 75 135 L 125 135 L 118 160 L 82 160 Z"
+            fill="none"
+            stroke="#6B7280"
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+          />
+          <line x1="78" y1="147" x2="122" y2="147" stroke="#6B7280" strokeWidth="2" />
+          <line x1="85" y1="135" x2="88" y2="128" stroke="#6B7280" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="115" y1="135" x2="112" y2="128" stroke="#6B7280" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="92" y1="147" x2="89" y2="160" stroke="#6B7280" strokeWidth="1.5" strokeLinecap="round" />
+          <line x1="100" y1="147" x2="100" y2="160" stroke="#6B7280" strokeWidth="1.5" strokeLinecap="round" />
+          <line x1="108" y1="147" x2="111" y2="160" stroke="#6B7280" strokeWidth="1.5" strokeLinecap="round" />
+        </g>
       )}
 
       {/* Light bulb for tip pose — glowing idea above head */}

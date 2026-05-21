@@ -2,8 +2,17 @@ import Link from "next/link";
 import { getLeaderboard, type LeaderboardEntry } from "@/features/leaderboard/actions";
 
 export async function MiniLeaderboard() {
-  const { topUsers } = await getLeaderboard();
+  const { topUsers, currentUserEntry } = await getLeaderboard();
   const top5 = topUsers.slice(0, 5);
+
+  // Highlight current user kalau dia di luar top 5
+  // - Rank 6-20: ada di topUsers tapi bukan top5
+  // - Rank 21+: pakai currentUserEntry dari leaderboard action
+  const userInTop5 = top5.some((e) => e.isCurrentUser);
+  const userInRank6To20 = !userInTop5
+    ? topUsers.find((e) => e.isCurrentUser) ?? null
+    : null;
+  const highlightEntry = userInRank6To20 || currentUserEntry;
 
   return (
     <div className="bg-white rounded-2xl border-2 border-gray-200 p-5">
@@ -29,6 +38,24 @@ export async function MiniLeaderboard() {
             <MiniRow key={entry.id} entry={entry} />
           ))}
         </div>
+      )}
+
+      {highlightEntry && (
+        <>
+          <div className="my-3 border-t border-dashed border-gray-200" />
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs bg-primary/10 border border-primary/30">
+            <span className="w-6 text-center font-bold shrink-0 text-primary">
+              {highlightEntry.rank}
+            </span>
+            <span className="flex-1 truncate font-bold text-primary">
+              {highlightEntry.username}
+              <span className="text-primary/70 font-normal ml-1">(You)</span>
+            </span>
+            <span className="text-primary font-mono shrink-0">
+              {highlightEntry.xp.toLocaleString("id-ID")} XP
+            </span>
+          </div>
+        </>
       )}
     </div>
   );

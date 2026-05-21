@@ -3,10 +3,14 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { Article } from "@/types/database";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
+import { ArrowRightIcon, ClockIcon } from "@heroicons/react/24/outline";
+import type { ArticleWithPublisher } from "@/types/database";
+import { getPublisherDisplay } from "@/features/blog/utils";
 
 interface FeaturedPostProps {
-  article: Article;
+  article: ArticleWithPublisher;
 }
 
 const PLACEHOLDER_IMAGE = "/placeholder-blog.svg";
@@ -18,6 +22,7 @@ function getImageUrl(url: string | null | undefined): string {
 
 export function FeaturedPost({ article }: FeaturedPostProps) {
   const [imgSrc, setImgSrc] = useState(getImageUrl(article.cover_image));
+  const display = getPublisherDisplay(article.publisher, article.author);
 
   return (
     <div className="group relative overflow-hidden rounded-3xl bg-gray-900 text-white">
@@ -57,17 +62,35 @@ export function FeaturedPost({ article }: FeaturedPostProps) {
           </p>
         )}
 
-        <div className="flex items-center justify-between border-t border-white/20 pt-4">
-          <div className="flex items-center gap-3 text-sm text-gray-400">
-            <span>{article.author || "Tim Fintar"}</span>
-            <span>•</span>
-            <span>{article.read_time_minutes} menit baca</span>
+        <div className="flex items-center justify-between border-t border-white/20 pt-4 gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                display.isFintarTeam
+                  ? "bg-primary text-white border border-white/20"
+                  : "bg-slate-200 text-slate-700"
+              }`}
+            >
+              {display.initials}
+            </div>
+            <div className="flex items-center gap-2 text-xs md:text-sm text-gray-300 min-w-0">
+              <span className="font-medium truncate">{display.label}</span>
+              <span className="opacity-60">•</span>
+              <span className="hidden sm:inline">{format(new Date(article.created_at), "d MMM yyyy", { locale: id })}</span>
+              <span className="hidden sm:inline opacity-60">•</span>
+              <span className="inline-flex items-center gap-1">
+                <ClockIcon className="w-3.5 h-3.5" />
+                {article.read_time_minutes} min baca
+              </span>
+            </div>
           </div>
+
           <Link
             href={`/blog/${article.slug}`}
-            className="flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-bold text-black hover:translate-x-1 transition-transform"
+            className="flex items-center gap-1 rounded-full bg-white px-4 py-2 text-sm font-bold text-black hover:translate-x-1 transition-transform shrink-0"
           >
             Baca
+            <ArrowRightIcon className="w-4 h-4" />
           </Link>
         </div>
       </div>

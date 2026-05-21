@@ -102,11 +102,12 @@ export function SettingsForm({ initialUsername, initialEmail }: SettingsFormProp
       {/* Danger Zone */}
       <section className="bg-white p-6 rounded-2xl border-2 border-border">
         <h2 className="text-xl font-bold text-hearts mb-4">Danger Zone</h2>
-        <Button 
-            onClick={() => logoutUser()} 
-            className="w-full bg-red-100 text-hearts border-red-200 hover:bg-red-200 hover:border-red-300"
+        <Button
+          onClick={() => logoutUser()}
+          fullWidth
+          className="justify-center bg-red-100 text-hearts border-red-200 hover:bg-red-200 hover:border-red-300"
         >
-            Sign Out
+          Sign Out
         </Button>
       </section>
     </div>

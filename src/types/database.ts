@@ -21,10 +21,14 @@ export interface Profile {
   timezone: string | null;
   streak_freeze_active: boolean;
   is_admin: boolean;
+  admin_role: "dev" | "practitioner" | null;
+  admin_pin: string | null;
   onboarding_done: boolean;
   created_at: string;
   updated_at: string;
 }
+
+export type AdminRole = "dev" | "practitioner" | null;
 
 /**
  * Read-only projection of `profiles` exposed via the
@@ -126,12 +130,23 @@ export interface Article {
   tags: string[] | null;
   read_time_minutes: number | null;
   author: string | null;
+  published_by: string | null;
   is_featured: boolean;
   is_published: boolean;
   is_deleted: boolean;
   view_count: number;
   created_at: string;
   updated_at: string;
+}
+
+export type ArticlePublisher = {
+  id: string;
+  username: string;
+  admin_role: AdminRole;
+} | null;
+
+export interface ArticleWithPublisher extends Article {
+  publisher: ArticlePublisher;
 }
 
 export interface ChallengeOption {

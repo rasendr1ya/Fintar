@@ -36,12 +36,12 @@ export function QuestCard({
 
   return (
     <div
-      className={`flex items-center gap-4 p-4 rounded-2xl border transition-all ${
+      className={`flex items-center gap-4 px-4 py-3 rounded-2xl border-2 transition-all ${
         isClaimed
           ? "bg-gray-50 border-gray-100 opacity-60"
           : isCompleted
-          ? "bg-emerald-50 border-emerald-200 ring-1 ring-emerald-200"
-          : "bg-white border-gray-100 shadow-sm"
+          ? "bg-emerald-50 border-emerald-200"
+          : "bg-white border-gray-200 hover:border-primary/40"
       }`}
     >
       {/* Icon Square */}
@@ -53,21 +53,32 @@ export function QuestCard({
         }`}
       >
         {isCompleted || isClaimed ? (
-          <CheckCircleIcon className="w-5 h-5 text-white" />
+          <CheckCircleIcon className="w-7 h-7 text-white" />
         ) : (
-          <BoltIcon className="w-5 h-5 text-orange-500" />
+          <BoltIcon className="w-7 h-7 text-orange-500" />
         )}
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p
-          className={`text-sm font-semibold truncate ${
-            isClaimed ? "text-gray-400" : "text-gray-800"
-          }`}
-        >
-          {title}
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <p
+            className={`text-sm font-semibold truncate ${
+              isClaimed ? "text-gray-400" : "text-gray-800"
+            }`}
+          >
+            {title}
+          </p>
+          {!(isCompleted && !isClaimed) && (
+            <p
+              className={`text-sm font-bold shrink-0 ${
+                isClaimed ? "text-gray-400" : "text-orange-500"
+              }`}
+            >
+              +{rewardXp} XP
+            </p>
+          )}
+        </div>
 
         {(isCompleted || isClaimed) && (
           <p className="text-xs font-semibold text-emerald-600 mt-0.5 tracking-wide">
@@ -89,8 +100,8 @@ export function QuestCard({
         </div>
       </div>
 
-      {/* Right side */}
-      {isCompleted && !isClaimed ? (
+      {/* Right side: HANYA Klaim button */}
+      {isCompleted && !isClaimed && (
         <button
           onClick={() => onClaim(userQuestId)}
           disabled={claiming}
@@ -98,14 +109,6 @@ export function QuestCard({
         >
           {claiming ? "..." : `Klaim +${rewardXp} XP`}
         </button>
-      ) : (
-        <p
-          className={`text-sm font-bold shrink-0 ${
-            isClaimed ? "text-gray-400" : "text-orange-500"
-          }`}
-        >
-          +{rewardXp} XP
-        </p>
       )}
     </div>
   );

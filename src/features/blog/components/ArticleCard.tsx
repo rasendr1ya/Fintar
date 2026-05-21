@@ -3,10 +3,13 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { Article } from "@/types/database";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
+import { ArrowRightIcon, ClockIcon } from "@heroicons/react/24/outline";
+import type { ArticleWithPublisher } from "@/types/database";
 
 interface ArticleCardProps {
-  article: Article;
+  article: ArticleWithPublisher;
 }
 
 const PLACEHOLDER_IMAGE = "/placeholder-blog.svg";
@@ -39,28 +42,34 @@ export function ArticleCard({ article }: ArticleCardProps) {
         )}
       </div>
 
-      <div className="flex flex-col flex-1 p-5">
-        <div className="flex items-center gap-2 text-xs text-muted mb-2">
-          <span>{article.read_time_minutes} menit baca</span>
+      <div className="flex flex-col flex-1 p-4">
+        <div className="flex items-center gap-2 text-xs text-muted mb-1.5">
+          <span>{format(new Date(article.created_at), "d MMM yyyy", { locale: id })}</span>
+          <span className="opacity-60">•</span>
+          <span className="inline-flex items-center gap-1">
+            <ClockIcon className="w-3 h-3" />
+            {article.read_time_minutes} menit baca
+          </span>
         </div>
 
-        <h3 className="text-lg font-bold text-text mb-2 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+        <h3 className="text-base font-bold text-text mb-1.5 line-clamp-2 leading-snug group-hover:text-primary transition-colors">
           <Link href={`/blog/${article.slug}`}>
             {article.title}
           </Link>
         </h3>
 
         {article.summary && (
-          <p className="text-sm text-muted mb-4 line-clamp-2 leading-relaxed flex-1">
+          <p className="text-xs text-muted mb-3 line-clamp-2 leading-relaxed flex-1">
             {article.summary}
           </p>
         )}
 
         <Link
           href={`/blog/${article.slug}`}
-          className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:text-primary-dark transition-colors"
+          className="group/btn inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary-dark transition-colors mt-auto"
         >
-          Baca Selengkapnya →
+          Baca Selengkapnya
+          <ArrowRightIcon className="w-3.5 h-3.5 transition-transform duration-200 group-hover/btn:translate-x-1" />
         </Link>
       </div>
     </article>

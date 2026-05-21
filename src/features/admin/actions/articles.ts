@@ -106,6 +106,7 @@ export async function createArticle(input: CreateArticleInput): Promise<{ succes
       tags: input.tags || [],
       read_time_minutes: readTime,
       author: profile.username || "Admin",
+      published_by: profile.id,
       is_featured: input.is_featured || false,
       is_published: input.is_published || false,
       view_count: 0,
@@ -235,9 +236,14 @@ export async function togglePublish(id: string): Promise<{ success?: boolean; is
 
   const newStatus = !article.is_published;
 
+  const updateData: Record<string, unknown> = { is_published: newStatus };
+  if (newStatus) {
+    updateData.published_by = profile.id;
+  }
+
   const { error } = await supabase
     .from("articles")
-    .update({ is_published: newStatus })
+    .update(updateData)
     .eq("id", id);
 
   if (error) return { error: "Gagal mengubah status publikasi" };

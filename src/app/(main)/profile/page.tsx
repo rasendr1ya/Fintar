@@ -32,8 +32,9 @@ export default async function ProfilePage() {
       hearts={profile.hearts}
       maxHearts={calculateMaxHearts(profile.xp)}
       occupation={profile.occupation}
-      financialGoal={profile.financial_goal}
       lessonsCompleted={lessonsCompleted || 0}
+      isAdmin={profile.is_admin}
+      adminRole={profile.admin_role}
     />
   );
 }

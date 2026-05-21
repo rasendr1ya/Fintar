@@ -2,6 +2,8 @@
 
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { clearAdminPinSession } from "./admin-pin";
 
 export async function registerUser(formData: FormData) {
   const username = (formData.get("username") as string)?.trim();
@@ -58,6 +60,18 @@ export async function loginUser(formData: FormData) {
     return { error: error.message };
   }
 
+  const userId = data.user.id;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_admin, admin_pin, onboarding_done")
+    .eq("id", userId)
+    .single();
+
+  if (profile?.is_admin && profile?.admin_pin) {
+    redirect("/verify-admin-pin");
+  }
+
   revalidatePath("/learn");
   return { success: true, user: data.user };
 }
@@ -101,6 +115,9 @@ export async function resendOtp(formData: FormData) {
 
 export async function logoutUser() {
   const supabase = await createClient();
+
+  await clearAdminPinSession();
+
   const { error } = await supabase.auth.signOut({ scope: "global" });
 
   if (error) {

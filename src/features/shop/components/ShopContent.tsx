@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { buyHeartRefill, buyStreakFreeze } from "@/features/shop/actions";
 import { ShopItemCard } from "@/features/shop/components/ShopItemCard";
 import { Finny } from "@/components/mascot/Finny";
+import { ShieldCheckIcon, HeartIcon, ShoppingBagIcon } from "@heroicons/react/24/outline";
 import type { ShopItem } from "@/types/database";
 
 interface ShopContentProps {
@@ -27,21 +28,21 @@ export function ShopContent({ items, coins, hearts, maxHearts, streakFreezeActiv
         if (result.error) {
           setMessage({ text: result.error, type: "error" });
         } else {
-          setMessage({ text: "Streak Freeze aktif! Streak kamu terlindungi. 🛡️", type: "success" });
+          setMessage({ text: "Streak Freeze aktif! Streak kamu terlindungi.", type: "success" });
         }
         return;
       }
 
       if (item.type === "HEART_REFILL") {
         if (hearts >= maxHearts) {
-          setMessage({ text: "Hearts kamu sudah penuh! ❤️", type: "error" });
+          setMessage({ text: "Hearts kamu sudah penuh!", type: "error" });
           return;
         }
         const result = await buyHeartRefill();
         if (result.error) {
           setMessage({ text: result.error, type: "error" });
         } else {
-          setMessage({ text: "Hearts berhasil diisi ulang! ❤️", type: "success" });
+          setMessage({ text: "Hearts berhasil diisi ulang!", type: "success" });
         }
       }
     });
@@ -53,7 +54,7 @@ export function ShopContent({ items, coins, hearts, maxHearts, streakFreezeActiv
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-text">Shop</h1>
         <div className="hidden sm:block">
-          <Finny pose="waving" size={64} />
+          <Finny pose="shopping" size={72} />
         </div>
       </div>
 
@@ -72,16 +73,22 @@ export function ShopContent({ items, coins, hearts, maxHearts, streakFreezeActiv
       </div>
 
       {streakFreezeActive && (
-        <div className="mb-4 p-4 rounded-xl bg-blue-50 border border-blue-100 text-sm text-blue-700 font-medium text-center">
-          🛡️ Streak Freeze aktif! Streak kamu aman jika melewatkan 1 hari belajar.
+        <div className="mb-4 p-4 rounded-xl bg-blue-50 border border-blue-100 text-sm text-blue-700 font-medium flex items-center justify-center gap-2">
+          <ShieldCheckIcon className="w-5 h-5 shrink-0" />
+          <span>Streak Freeze aktif! Streak kamu aman jika melewatkan 1 hari belajar.</span>
         </div>
       )}
 
       {message && (
-        <div className={`mb-4 p-4 rounded-xl text-sm font-medium text-center ${
+        <div className={`mb-4 p-4 rounded-xl text-sm font-medium flex items-center justify-center gap-2 ${
           message.type === "success" ? "bg-success/10 text-success border border-success/20" : "bg-hearts/10 text-hearts border border-hearts/20"
         }`}>
-          {message.text}
+          {message.type === "success" ? (
+            <ShieldCheckIcon className="w-5 h-5 shrink-0" />
+          ) : (
+            <HeartIcon className="w-5 h-5 shrink-0" />
+          )}
+          <span>{message.text}</span>
         </div>
       )}
 
@@ -103,7 +110,7 @@ export function ShopContent({ items, coins, hearts, maxHearts, streakFreezeActiv
 
         {items.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-4xl mb-3">🛒</p>
+            <ShoppingBagIcon className="w-16 h-16 text-muted mx-auto mb-3" />
             <p className="text-muted">Belum ada item di shop</p>
           </div>
         )}
