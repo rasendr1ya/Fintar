@@ -115,6 +115,25 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // 4b. Admin PIN guard for protected non-admin routes
+  //     Admin dengan PIN ter-set harus diverifikasi sebelum akses route apapun
+  if (user && isProtectedRoute && !isAdminRoute) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_admin, admin_pin")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.is_admin && profile.admin_pin) {
+      const adminPinVerified = request.cookies.get("admin_pin_verified")?.value === "true";
+      if (!adminPinVerified) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/verify-admin-pin";
+        return NextResponse.redirect(url);
+      }
+    }
+  }
+
   // 5. Authenticated user on onboarding who already completed it → learn
   if (user && isOnboarding) {
     const { data: profile } = await supabase

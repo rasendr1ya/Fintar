@@ -54,7 +54,7 @@ const sizeStyles: Record<ButtonSize, string> = {
 };
 
 const baseStyles =
-  "inline-flex items-center gap-2 whitespace-nowrap font-semibold transition-all duration-100 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:translate-y-0 disabled:active:border-b-4 text-center";
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold transition-all duration-100 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:translate-y-0 disabled:active:border-b-4 text-center";
 
 // Helper to check if props have href
 function isLinkProps(props: ButtonProps): props is ButtonAsLinkProps {

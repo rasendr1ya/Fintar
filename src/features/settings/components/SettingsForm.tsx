@@ -99,17 +99,12 @@ export function SettingsForm({ initialUsername, initialEmail }: SettingsFormProp
         </div>
       </section>
 
-      {/* Danger Zone */}
-      <section className="bg-white p-6 rounded-2xl border-2 border-border">
-        <h2 className="text-xl font-bold text-hearts mb-4">Danger Zone</h2>
-        <Button
-          onClick={() => logoutUser()}
-          fullWidth
-          className="justify-center bg-red-100 text-hearts border-red-200 hover:bg-red-200 hover:border-red-300"
-        >
-          Sign Out
-        </Button>
-      </section>
+      <button
+        onClick={() => logoutUser()}
+        className="w-full bg-white text-hearts font-bold py-3 rounded-2xl border-2 border-hearts/30 hover:bg-hearts/5 hover:border-hearts/50 transition-all duration-200"
+      >
+        Keluar
+      </button>
     </div>
   );
 }

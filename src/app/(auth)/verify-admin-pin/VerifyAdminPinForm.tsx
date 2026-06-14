@@ -1,29 +1,128 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { verifyAdminPin } from "@/features/auth/actions/admin-pin";
 import { Button } from "@/components/ui/Button";
 import { Finny } from "@/components/mascot/Finny";
-import { XMarkIcon, LockClosedIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon } from "@heroicons/react/24/outline";
+
+const PIN_LENGTH = 6;
 
 export function VerifyAdminPinForm() {
   const router = useRouter();
-  const [pin, setPin] = useState("");
+  const [pin, setPin] = useState<string[]>(Array(PIN_LENGTH).fill(""));
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const focusIndex = useCallback((index: number) => {
+    const clamped = Math.max(0, Math.min(index, PIN_LENGTH - 1));
+    inputRefs.current[clamped]?.focus();
+  }, []);
+
+  const handleChange = (index: number, value: string) => {
+    if (value === "") {
+      const newPin = [...pin];
+      newPin[index] = "";
+      setPin(newPin);
+      return;
+    }
+
+    const digits = value.replace(/\D/g, "").split("");
+    if (digits.length === 0) return;
+
+    const newPin = [...pin];
+    let lastFilled = index;
+
+    for (let i = 0; i < digits.length && index + i < PIN_LENGTH; i++) {
+      newPin[index + i] = digits[i];
+      lastFilled = index + i;
+    }
+
+    setPin(newPin);
+
+    const nextIndex = Math.min(lastFilled + 1, PIN_LENGTH - 1);
+    if (nextIndex !== index || digits.length >= PIN_LENGTH - index) {
+      focusIndex(nextIndex);
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace") {
+      e.preventDefault();
+
+      if (pin[index]) {
+        const newPin = [...pin];
+        newPin[index] = "";
+        setPin(newPin);
+        return;
+      }
+
+      if (index > 0) {
+        const newPin = [...pin];
+        newPin[index - 1] = "";
+        setPin(newPin);
+        focusIndex(index - 1);
+      }
+      return;
+    }
+
+    if (e.key === "ArrowLeft" && index > 0) {
+      e.preventDefault();
+      focusIndex(index - 1);
+      return;
+    }
+
+    if (e.key === "ArrowRight" && index < PIN_LENGTH - 1) {
+      e.preventDefault();
+      focusIndex(index + 1);
+      return;
+    }
+
+    if (/^\d$/.test(e.key)) {
+      e.preventDefault();
+      const newPin = [...pin];
+      newPin[index] = e.key;
+      setPin(newPin);
+      if (index < PIN_LENGTH - 1) {
+        focusIndex(index + 1);
+      }
+      return;
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, PIN_LENGTH);
+    if (pastedData.length === 0) return;
+
+    const newPin = [...pin];
+    for (let i = 0; i < pastedData.length; i++) {
+      newPin[i] = pastedData[i];
+    }
+    setPin(newPin);
+    focusIndex(Math.min(pastedData.length, PIN_LENGTH - 1));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setIsLoading(true);
 
-    const result = await verifyAdminPin(pin);
+    const code = pin.join("");
+    if (code.length !== PIN_LENGTH) {
+      setError("Masukkan 6-digit PIN lengkap");
+      return;
+    }
+
+    setIsLoading(true);
+    const result = await verifyAdminPin(code);
 
     if (result.error) {
       setError(result.error);
+      setPin(Array(PIN_LENGTH).fill(""));
       setIsLoading(false);
+      focusIndex(0);
       return;
     }
 
@@ -37,12 +136,17 @@ export function VerifyAdminPinForm() {
       <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-xp/10 rounded-full blur-3xl -z-10" />
 
       <header className="flex items-center justify-between px-6 py-6 md:px-10">
-        <Link
-          href="/"
+        <button
+          type="button"
+          onClick={async () => {
+            await import("@/features/auth/actions").then((m) => m.logoutUser());
+            router.push("/onboarding");
+            router.refresh();
+          }}
           className="w-10 h-10 flex items-center justify-center text-muted hover:text-text transition-colors"
         >
           <XMarkIcon className="w-8 h-8" />
-        </Link>
+        </button>
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-4 pb-20">
@@ -66,21 +170,26 @@ export function VerifyAdminPinForm() {
               )}
 
               <div className="space-y-4">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <LockClosedIcon className="h-5 w-5 text-muted" aria-hidden="true" />
-                  </div>
-                  <input
-                    type="password"
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="6 digit PIN"
-                    required
-                    maxLength={6}
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    className="w-full pl-11 pr-4 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-text placeholder:text-muted focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all font-medium text-center text-2xl tracking-[0.5em]"
-                  />
+                <div className="flex items-center justify-center gap-1.5" onPaste={handlePaste}>
+                  {pin.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => { inputRefs.current[index] = el; }}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleChange(index, e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(index, e)}
+                      onFocus={(e) => e.target.select()}
+                      className={`w-12 h-14 text-center text-2xl font-bold border-2 rounded-xl shadow-sm transition-all focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/15 focus:bg-white ${
+                        digit
+                          ? "border-primary/40 bg-primary-50/30"
+                          : "border-gray-300 bg-white"
+                      }`}
+                    />
+                  ))}
                 </div>
               </div>
 

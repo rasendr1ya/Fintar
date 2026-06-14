@@ -69,7 +69,7 @@ export async function RightSidebar() {
             &quot;Jangan lupa catat pengeluaran kecil. Kopi 20rb sehari = 600rb sebulan lho!&quot;
           </p>
           <Link href="/blog" className="text-primary font-bold text-sm uppercase hover:underline">
-            Learn More
+            Explore More
           </Link>
         </div>
       </div>
