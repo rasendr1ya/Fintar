@@ -35,8 +35,6 @@ next-env.d.ts
 
 # agents
 agent_docs/
-AGENTS.md
-DESIGN.md
 
 # supabase
 supabase/.temp
