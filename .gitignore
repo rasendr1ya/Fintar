@@ -38,3 +38,8 @@ agent_docs/
 
 # supabase
 supabase/.temp
+
+# cloudflare
+.open-next
+.wrangler
+.dev.vars

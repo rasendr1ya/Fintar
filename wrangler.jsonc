@@ -1,0 +1,14 @@
+{
+  "name": "fintar",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+    "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://osnulknqokvmuufpxrzw.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_jacTY6mV-1Cw_2aqWe3djQ_JIoQo8lW"
+  }
+}

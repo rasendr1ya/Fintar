@@ -116,18 +116,25 @@ export function VerifyAdminPinForm() {
     }
 
     setIsLoading(true);
-    const result = await verifyAdminPin(code);
 
-    if (result.error) {
-      setError(result.error);
+    try {
+      const result = await verifyAdminPin(code);
+
+      if (result.error) {
+        setError(result.error);
+        setPin(Array(PIN_LENGTH).fill(""));
+        setIsLoading(false);
+        focusIndex(0);
+        return;
+      }
+
+      router.push("/admin");
+    } catch {
+      setError("Terjadi kesalahan, coba lagi");
       setPin(Array(PIN_LENGTH).fill(""));
       setIsLoading(false);
       focusIndex(0);
-      return;
     }
-
-    router.push("/admin");
-    router.refresh();
   };
 
   return (
