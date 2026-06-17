@@ -155,9 +155,8 @@ function PodiumBlock({ slot }: { slot: PodiumSlot }) {
   const initials = getInitials(entry.username);
   const isCurrentUser = entry.isCurrentUser;
 
-  const avatarClasses = isCurrentUser
-    ? "bg-primary-50 text-primary ring-primary"
-    : `${config.avatarBg} ${config.avatarText} ${config.ring}`;
+  // Avatar tetap mengikuti warna rank; highlight current user hanya di teks
+  const avatarClasses = `${config.avatarBg} ${config.avatarText} ${config.ring}`;
 
   return (
     <div className="flex flex-col items-center flex-1 max-w-[120px]">
@@ -212,13 +211,9 @@ function PodiumBlock({ slot }: { slot: PodiumSlot }) {
           Lv.{entry.level}
         </span>
 
-        {/* XP pill */}
+        {/* XP pill tetap mengikuti warna rank */}
         <span
-          className={`text-xs font-bold px-3 py-1 rounded-full ${
-            isCurrentUser
-              ? "bg-primary-50 text-primary ring-1 ring-primary/20"
-              : `${config.pillBg} ${config.pillText}`
-          }`}
+          className={`text-xs font-bold px-3 py-1 rounded-full ${config.pillBg} ${config.pillText}`}
         >
           {entry.xp.toLocaleString("id-ID")} XP
         </span>
@@ -324,7 +319,7 @@ export function LeaderboardContent({ data }: LeaderboardContentProps) {
         </div>
         <div>
           <h2 className="font-bold text-lg text-yellow-800">Liga Mahasiswa</h2>
-          <p className="text-sm text-yellow-700">ranking 20 besar</p>
+          <p className="text-sm text-yellow-700">Ranking 20 besar</p>
         </div>
       </div>
 
