@@ -4,9 +4,19 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { getArticleBySlug } from "@/features/blog/actions";
-import { ArticleContent } from "@/features/blog/components";
+import { ArticlePdfTabs } from "@/features/blog/components";
 import { ArrowLeftIcon, ClockIcon } from "@heroicons/react/24/outline";
 import { getPublisherDisplay } from "@/features/blog/utils";
+
+function getSyllabusPdfUrl(tags: string[] | null): string | undefined {
+  const syllabusTag = tags?.find((tag) => tag.startsWith("silabus-"));
+  if (!syllabusTag) return undefined;
+  const number = syllabusTag.replace("silabus-", "");
+  if (!number || Number.isNaN(Number(number))) return undefined;
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
+  if (!base) return undefined;
+  return `${base}/storage/v1/object/public/syllabus/silabus-${number}.pdf`;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -93,9 +103,10 @@ export default async function BlogPostPage({ params }: BlogPostProps) {
       <div className="h-16 md:h-24" />
 
       <div className="max-w-3xl mx-auto px-4">
-        <ArticleContent
+        <ArticlePdfTabs
           content={article.content || ""}
-          className="prose prose-slate max-w-none"
+          pdfUrl={getSyllabusPdfUrl(article.tags)}
+          isSyllabus={article.category === "Silabus"}
         />
 
         {article.tags && article.tags.length > 0 && (

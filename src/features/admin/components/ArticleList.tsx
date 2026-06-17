@@ -80,22 +80,22 @@ export function ArticleList({ articles: initialArticles }: ArticleListProps) {
   return (
     <div className="overflow-x-auto -mx-4 md:mx-0">
       <div className="min-w-[640px] bg-white rounded-2xl border border-border overflow-hidden">
-        <table className="w-full">
+        <table className="w-full table-fixed">
           <thead className="bg-gray-50 border-b border-border">
             <tr>
-              <th className="text-left px-6 py-4 text-xs font-bold text-muted uppercase">
+              <th className="text-left px-6 py-4 text-xs font-bold text-muted uppercase w-auto">
                 Judul
               </th>
-              <th className="text-left px-6 py-4 text-xs font-bold text-muted uppercase">
+              <th className="text-left px-6 py-4 text-xs font-bold text-muted uppercase w-20">
                 Kategori
               </th>
-              <th className="text-left px-6 py-4 text-xs font-bold text-muted uppercase">
+              <th className="text-left px-6 py-4 text-xs font-bold text-muted uppercase w-20">
                 Status
               </th>
-              <th className="text-left px-6 py-4 text-xs font-bold text-muted uppercase">
+              <th className="text-left px-6 py-4 text-xs font-bold text-muted uppercase w-14">
                 Dilihat
               </th>
-              <th className="text-right px-6 py-4 text-xs font-bold text-muted uppercase">
+              <th className="text-right px-6 py-4 text-xs font-bold text-muted uppercase w-48">
                 Aksi
               </th>
             </tr>
@@ -108,12 +108,12 @@ export function ArticleList({ articles: initialArticles }: ArticleListProps) {
                   loadingId === article.id ? "opacity-50" : ""
                 }`}
               >
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 overflow-hidden">
                   <div className="flex items-center gap-3 min-w-0">
                     {article.is_featured && (
                       <StarIconSolid className="w-4 h-4 text-coins shrink-0" />
                     )}
-                    <div className="min-w-0">
+                    <div className="min-w-0 overflow-hidden">
                       <p className="font-medium text-text truncate">{article.title}</p>
                       <p className="text-xs text-muted truncate">{article.slug}</p>
                     </div>
