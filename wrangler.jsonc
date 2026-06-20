@@ -12,6 +12,8 @@
   },
     "vars": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://osnulknqokvmuufpxrzw.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_jacTY6mV-1Cw_2aqWe3djQ_JIoQo8lW"
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_jacTY6mV-1Cw_2aqWe3djQ_JIoQo8lW",
+    "SUPABASE_SERVICE_ROLE_KEY": "placeholder-overridden-by-wrangler-secret-put",
+    "CRON_SECRET": "placeholder-overridden-by-wrangler-secret-put"
   }
 }
