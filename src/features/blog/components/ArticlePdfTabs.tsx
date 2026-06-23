@@ -4,7 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { ArticleContent } from "./ArticleContent";
 
-const SyllabusPdfViewer = dynamic(() => import("./SyllabusPdfViewer").then((mod) => mod.SyllabusPdfViewer), { ssr: false });
+const SyllabusPdfBookViewer = dynamic(() => import("./SyllabusPdfBookViewer").then((mod) => mod.SyllabusPdfBookViewer), { ssr: false });
 
 interface ArticlePdfTabsProps {
   content: string;
@@ -50,7 +50,7 @@ export function ArticlePdfTabs({ content, pdfUrl, isSyllabus }: ArticlePdfTabsPr
         <ArticleContent content={content} className="prose prose-slate max-w-none" />
       )}
 
-      {activeTab === "pdf" && <SyllabusPdfViewer pdfUrl={pdfUrl} />}
+      {activeTab === "pdf" && <SyllabusPdfBookViewer pdfUrl={pdfUrl} />}
     </div>
   );
 }

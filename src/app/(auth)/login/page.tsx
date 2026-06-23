@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { loginUser } from "@/features/auth/actions";
 import { Button } from "@/components/ui/Button";
@@ -9,7 +8,6 @@ import { Finny } from "@/components/mascot/Finny";
 import { XMarkIcon, EnvelopeIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -31,9 +29,7 @@ export default function LoginPage() {
       setIsLoading(false);
       return;
     }
-
-    await router.push("/learn");
-    router.refresh();
+    // Server redirects via redirect("/learn") — no client-side navigation needed
   };
 
   return (

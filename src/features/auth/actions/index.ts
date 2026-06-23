@@ -73,7 +73,7 @@ export async function loginUser(formData: FormData) {
   }
 
   revalidatePath("/learn");
-  return { success: true, user: data.user };
+  redirect("/learn");
 }
 
 export async function verifyOtp(formData: FormData) {
