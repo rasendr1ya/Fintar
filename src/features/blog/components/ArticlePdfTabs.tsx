@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { ArticleContent } from "./ArticleContent";
-import { SyllabusPdfViewer } from "./SyllabusPdfViewer";
+
+const SyllabusPdfViewer = dynamic(() => import("./SyllabusPdfViewer").then((mod) => mod.SyllabusPdfViewer), { ssr: false });
 
 interface ArticlePdfTabsProps {
   content: string;
