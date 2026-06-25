@@ -21,7 +21,7 @@ export function ArticlePdfTabs({ content, pdfUrl, isSyllabus }: ArticlePdfTabsPr
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-6 border-b border-border">
+      <div className="flex items-center gap-2 mb-6 border-b border-border overflow-x-auto">
         <button
           type="button"
           onClick={() => setActiveTab("article")}

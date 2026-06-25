@@ -78,41 +78,63 @@ export default async function BlogPostPage({ params }: BlogPostProps) {
       {(() => {
         const display = getPublisherDisplay(article.publisher, article.author);
         const publishDate = format(new Date(article.created_at), "d MMM yyyy", { locale: id });
+        const shortDate = format(new Date(article.created_at), "d MMM", { locale: id });
 
         return (
           <div className="max-w-2xl mx-auto px-4 -mt-12 md:-mt-16 relative z-30">
-            <div className="flex items-center bg-white rounded-2xl shadow-sm border border-gray-100 py-3 px-4 md:px-6 overflow-hidden">
-              <div className="flex items-center gap-3 flex-1 justify-center min-w-0">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 py-3 px-4 md:px-6 overflow-hidden">
+              {/* Mobile metadata — single row, same card size as desktop */}
+              <div className="flex sm:hidden items-center justify-center gap-2 min-w-0">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white shadow-sm shrink-0">
                   <Finny pose="default" size={40} />
                 </div>
-                <div className="text-left min-w-0">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Penulis</p>
-                  <p className="text-sm font-bold text-gray-900 truncate">{display.label}</p>
-                </div>
-              </div>
-
-              <div className="w-px h-12 bg-gray-200 flex-shrink-0 mx-2 md:mx-3" />
-
-              <div className="flex items-center gap-3 flex-1 justify-center min-w-0">
+                <span className="text-sm font-bold text-gray-900 truncate">{display.label}</span>
+                <span className="text-sm text-gray-400 shrink-0">·</span>
                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
                   <CalendarDaysIcon className="w-5 h-5 text-blue-500" />
                 </div>
-                <div className="text-left min-w-0">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Tanggal</p>
-                  <p className="text-sm font-bold text-gray-900">{publishDate}</p>
-                </div>
-              </div>
-
-              <div className="w-px h-12 bg-gray-200 flex-shrink-0 mx-2 md:mx-3" />
-
-              <div className="flex items-center gap-3 flex-1 justify-center min-w-0">
+                <span className="text-sm text-gray-500 shrink-0">{shortDate}</span>
+                <span className="text-sm text-gray-400 shrink-0">·</span>
                 <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center shrink-0">
                   <ClockIcon className="w-5 h-5 text-orange-400" />
                 </div>
-                <div className="text-left min-w-0">
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Waktu Baca</p>
-                  <p className="text-sm font-bold text-gray-900">{article.read_time_minutes} Menit</p>
+                <span className="text-sm text-gray-500 shrink-0">{article.read_time_minutes} Menit</span>
+              </div>
+
+              {/* Desktop metadata — three-column with labels */}
+              <div className="hidden sm:flex items-center">
+                <div className="flex items-center gap-3 flex-1 justify-center min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white shadow-sm shrink-0">
+                    <Finny pose="default" size={40} />
+                  </div>
+                  <div className="text-left min-w-0">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Penulis</p>
+                    <p className="text-sm font-bold text-gray-900 truncate">{display.label}</p>
+                  </div>
+                </div>
+
+                <div className="w-px h-12 bg-gray-200 flex-shrink-0 mx-2 md:mx-3" />
+
+                <div className="flex items-center gap-3 flex-1 justify-center min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                    <CalendarDaysIcon className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div className="text-left min-w-0">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Tanggal</p>
+                    <p className="text-sm font-bold text-gray-900 truncate">{publishDate}</p>
+                  </div>
+                </div>
+
+                <div className="w-px h-12 bg-gray-200 flex-shrink-0 mx-2 md:mx-3" />
+
+                <div className="flex items-center gap-3 flex-1 justify-center min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center shrink-0">
+                    <ClockIcon className="w-5 h-5 text-orange-400" />
+                  </div>
+                  <div className="text-left min-w-0">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Waktu Baca</p>
+                    <p className="text-sm font-bold text-gray-900 truncate">{article.read_time_minutes} Menit</p>
+                  </div>
                 </div>
               </div>
             </div>

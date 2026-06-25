@@ -35,7 +35,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
         />
         {article.category && (
           <div className="absolute top-3 left-3">
-            <span className="bg-white/90 backdrop-blur-sm px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full text-primary border border-primary/10">
+            <span className="bg-white/90 backdrop-blur-sm px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full text-primary border border-primary/10 max-w-[calc(100%-1rem)] truncate">
               {article.category}
             </span>
           </div>
@@ -43,11 +43,11 @@ export function ArticleCard({ article }: ArticleCardProps) {
       </div>
 
       <div className="flex flex-col flex-1 p-4">
-        <div className="flex items-center gap-2 text-xs text-muted mb-1.5">
-          <span>{format(new Date(article.created_at), "d MMM yyyy", { locale: id })}</span>
-          <span className="opacity-60">•</span>
-          <span className="inline-flex items-center gap-1">
-            <ClockIcon className="w-3 h-3" />
+        <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-muted mb-1.5 min-w-0 flex-wrap">
+          <span className="truncate">{format(new Date(article.created_at), "d MMM yyyy", { locale: id })}</span>
+          <span className="opacity-60 shrink-0">•</span>
+          <span className="inline-flex items-center gap-1 min-w-0 truncate">
+            <ClockIcon className="w-3 h-3 shrink-0" />
             {article.read_time_minutes} menit baca
           </span>
         </div>
