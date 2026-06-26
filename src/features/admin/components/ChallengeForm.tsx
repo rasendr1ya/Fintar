@@ -3,11 +3,13 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/Button";
-import { createChallenge, updateChallenge } from "@/features/admin/actions";
+import { createChallenge, updateChallenge, uploadChallengeImage } from "@/features/admin/actions";
 import type { Challenge } from "@/types/database";
-import { XMarkIcon, CheckIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, CheckIcon, PhotoIcon } from "@heroicons/react/24/outline";
+import { showSuccess, showError } from "@/lib/toast";
 
 const challengeSchema = z.object({
   type: z.enum(["SELECT", "ASSIST"]),
@@ -27,6 +29,10 @@ interface ChallengeFormProps {
 export function ChallengeForm({ lessonId, challenge, onClose, onSave }: ChallengeFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(challenge?.image_url ?? null);
+  const [imagePreview, setImagePreview] = useState<string | null>(challenge?.image_url ?? null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [options, setOptions] = useState<string[]>(
     challenge?.options && Array.isArray(challenge.options) && challenge.options.length >= 2
       ? challenge.options
@@ -88,6 +94,7 @@ export function ChallengeForm({ lessonId, challenge, onClose, onSave }: Challeng
           question: data.question,
           options: validOptions,
           correct_answer: data.correct_answer.trim(),
+          image_url: imageUrl,
         });
       } else {
         result = await createChallenge({
@@ -96,19 +103,23 @@ export function ChallengeForm({ lessonId, challenge, onClose, onSave }: Challeng
           question: data.question,
           options: validOptions,
           correct_answer: data.correct_answer.trim(),
+          image_url: imageUrl,
         });
       }
 
       if ("error" in result && result.error) {
         setError(result.error);
+        showError("Gagal menyimpan challenge");
         return;
       }
 
+      showSuccess(challenge ? "Challenge berhasil disimpan!" : "Challenge berhasil ditambahkan!");
       if ("data" in result && result.data) {
         onSave(result.data);
       }
     } catch {
       setError("Terjadi kesalahan");
+      showError("Terjadi kesalahan. Coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -185,6 +196,80 @@ export function ChallengeForm({ lessonId, challenge, onClose, onSave }: Challeng
             />
             {errors.question && (
               <p className="mt-1.5 text-sm text-hearts">{errors.question.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text mb-1.5">
+              Gambar Soal (opsional)
+            </label>
+
+            {imagePreview ? (
+              <div className="relative w-full max-w-xs h-40 rounded-2xl overflow-hidden border-2 border-border mb-3">
+                <Image
+                  src={imagePreview}
+                  alt="Preview gambar soal"
+                  fill
+                  unoptimized
+                  className="object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImageUrl(null);
+                    setImagePreview(null);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                  className="absolute top-2 right-2 p-1.5 bg-white/90 hover:bg-white rounded-lg shadow-sm transition-colors"
+                >
+                  <XMarkIcon className="w-4 h-4 text-hearts" />
+                </button>
+              </div>
+            ) : null}
+
+            <div className="flex gap-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setImagePreview(URL.createObjectURL(file));
+                  setIsUploadingImage(true);
+                  const formData = new FormData();
+                  formData.append("file", file);
+                  const result = await uploadChallengeImage(formData);
+                  if (result.success && result.url) {
+                    setImageUrl(result.url);
+                    setImagePreview(result.url);
+                  } else {
+                    setError(result.error || "Gagal mengupload gambar");
+                    setImagePreview(null);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }
+                  setIsUploadingImage(false);
+                }}
+                className="hidden"
+                id="challenge-image-upload"
+              />
+              <label
+                htmlFor="challenge-image-upload"
+                className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl border-2 border-dashed border-border hover:border-primary hover:bg-primary-50/30 cursor-pointer transition-colors text-sm font-medium text-muted hover:text-primary"
+              >
+                <PhotoIcon className="w-5 h-5" />
+                {imagePreview ? "Ganti Gambar" : "Pilih Gambar"}
+              </label>
+            </div>
+
+            {isUploadingImage && (
+              <p className="mt-2 text-sm text-primary flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Mengupload...
+              </p>
             )}
           </div>
 

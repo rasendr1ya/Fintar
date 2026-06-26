@@ -13,6 +13,7 @@ import { createArticle, updateArticle, uploadBlogImage } from "@/features/admin/
 import type { Article } from "@/types/database";
 import { RichTextEditor } from "./RichTextEditor";
 import { PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { showSuccess, showError } from "@/lib/toast";
 
 const articleSchema = z.object({
   title: z.string().min(1, "Judul wajib diisi").max(200, "Judul terlalu panjang"),
@@ -100,6 +101,7 @@ export function ArticleForm({ article }: ArticleFormProps) {
 
         if ("error" in uploadResult && uploadResult.error) {
           setError(uploadResult.error);
+          showError("Gagal mengupload gambar");
           setIsSubmitting(false);
           setIsUploading(false);
           return;
@@ -107,6 +109,7 @@ export function ArticleForm({ article }: ArticleFormProps) {
 
         if ("url" in uploadResult && uploadResult.url) {
           resolvedCoverImage = uploadResult.url;
+          showSuccess("Gambar berhasil diupload");
         }
       }
 
@@ -135,13 +138,16 @@ export function ArticleForm({ article }: ArticleFormProps) {
 
       if ("error" in result && result.error) {
         setError(result.error);
+        showError("Gagal menyimpan artikel");
         return;
       }
 
+      showSuccess(article ? "Perubahan berhasil disimpan!" : "Artikel berhasil dibuat!");
       router.push("/admin/blog");
       router.refresh();
     } catch {
       setError("Terjadi kesalahan saat menyimpan artikel");
+      showError("Terjadi kesalahan. Coba lagi.");
     } finally {
       setIsSubmitting(false);
       setIsUploading(false);

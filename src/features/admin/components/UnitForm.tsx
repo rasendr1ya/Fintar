@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { createUnit, updateUnit } from "@/features/admin/actions";
 import type { Unit } from "@/types/database";
+import { showSuccess, showError } from "@/lib/toast";
 
 const unitSchema = z.object({
   title: z.string().min(1, "Judul wajib diisi").max(100, "Judul terlalu panjang"),
@@ -77,13 +78,16 @@ export function UnitForm({ unit }: UnitFormProps) {
 
       if ("error" in result && result.error) {
         setError(result.error);
+        showError("Gagal menyimpan unit");
         return;
       }
 
+      showSuccess(unit ? "Perubahan berhasil disimpan!" : "Unit berhasil dibuat!");
       router.push("/admin/lessons");
       router.refresh();
     } catch {
       setError("Terjadi kesalahan");
+      showError("Terjadi kesalahan. Coba lagi.");
     } finally {
       setIsSubmitting(false);
     }

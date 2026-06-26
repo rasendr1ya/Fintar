@@ -17,6 +17,7 @@ import {
   PlusIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarIconSolid } from "@heroicons/react/24/solid";
+import { showSuccess, showError } from "@/lib/toast";
 
 interface ArticleListProps {
   articles: Article[];
@@ -35,6 +36,9 @@ export function ArticleList({ articles: initialArticles }: ArticleListProps) {
           a.id === id ? { ...a, is_published: result.is_published ?? false } : a
         )
       );
+      showSuccess("Status publikasi berhasil diubah");
+    } else {
+      showError("Gagal mengubah status publikasi");
     }
     setLoadingId(null);
   };
@@ -49,6 +53,9 @@ export function ArticleList({ articles: initialArticles }: ArticleListProps) {
           is_featured: a.id === id ? (result.is_featured ?? false) : false,
         }))
       );
+      showSuccess("Status unggulan berhasil diubah");
+    } else {
+      showError("Gagal mengubah status unggulan");
     }
     setLoadingId(null);
   };
@@ -59,6 +66,9 @@ export function ArticleList({ articles: initialArticles }: ArticleListProps) {
     const result = await deleteArticle(id);
     if ("success" in result) {
       setArticles((prev) => prev.filter((a) => a.id !== id));
+      showSuccess("Artikel berhasil dihapus");
+    } else {
+      showError("Gagal menghapus artikel");
     }
     setLoadingId(null);
   };

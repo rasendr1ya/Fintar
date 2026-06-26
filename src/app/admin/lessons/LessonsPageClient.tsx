@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
@@ -16,6 +16,7 @@ import {
   reorderChallenges,
 } from "@/features/admin/actions";
 import type { UnitWithLessons, Lesson, Challenge } from "@/types/database";
+import { showSuccess, showError } from "@/lib/toast";
 import {
   PlusIcon,
   PencilIcon,
@@ -143,6 +144,7 @@ function SortableUnit({
           <button
             {...attributes}
             {...listeners}
+            suppressHydrationWarning
             className="p-1 text-muted hover:text-text transition-colors cursor-grab active:cursor-grabbing shrink-0"
             title="Drag to reorder"
           >
@@ -359,6 +361,7 @@ function SortableLesson({
         <button
           {...attributes}
           {...listeners}
+          suppressHydrationWarning
           className="p-1 text-muted hover:text-text transition-colors cursor-grab active:cursor-grabbing shrink-0"
           title="Drag to reorder"
         >
@@ -512,6 +515,7 @@ function SortableChallenge({
       <button
         {...attributes}
         {...listeners}
+        suppressHydrationWarning
         className="p-0.5 text-muted hover:text-text transition-colors cursor-grab active:cursor-grabbing shrink-0 mt-0.5"
         title="Drag to reorder"
       >
@@ -592,6 +596,10 @@ export function LessonsPageClient({ units: initialUnits }: LessonsPageClientProp
   const [editingChallenge, setEditingChallenge] = useState<Challenge | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
+  useEffect(() => {
+    setUnits(initialUnits);
+  }, [initialUnits]);
+
   const toggleUnit = (id: string) => {
     setExpandedUnits((prev) => {
       const next = new Set(prev);
@@ -616,12 +624,23 @@ export function LessonsPageClient({ units: initialUnits }: LessonsPageClientProp
     const result = await deleteUnit(id);
     if ("success" in result) {
       setUnits((prev) => prev.filter((u) => u.id !== id));
+      showSuccess("Unit berhasil dihapus");
+    } else {
+      showError("Gagal menghapus unit");
     }
     setLoadingId(null);
   };
 
   const handleDeleteLesson = async (unitId: string, lessonId: string) => {
-    if (!confirm("Yakin ingin menghapus lesson ini?")) return;
+    const parentUnit = units.find((u) => u.id === unitId);
+    const isLastLesson = (parentUnit?.lessons?.length ?? 0) <= 1;
+
+    const confirmMessage = isLastLesson
+      ? "Ini adalah lesson terakhir di unit ini. Jika dihapus, unit tidak akan muncul di halaman belajar pengguna sampai lesson baru ditambahkan. Hapus lesson ini?"
+      : "Yakin ingin menghapus lesson ini?";
+
+    if (!confirm(confirmMessage)) return;
+
     setLoadingId(lessonId);
     const result = await deleteLesson(lessonId);
     if ("success" in result) {
@@ -630,6 +649,13 @@ export function LessonsPageClient({ units: initialUnits }: LessonsPageClientProp
           u.id === unitId ? { ...u, lessons: u.lessons.filter((l) => l.id !== lessonId) } : u
         )
       );
+      if (isLastLesson) {
+        showSuccess("Lesson dihapus. Unit tidak akan tampil di halaman belajar sampai ada lesson baru.");
+      } else {
+        showSuccess("Lesson berhasil dihapus");
+      }
+    } else {
+      showError("Gagal menghapus lesson");
     }
     setLoadingId(null);
   };
@@ -653,15 +679,22 @@ export function LessonsPageClient({ units: initialUnits }: LessonsPageClientProp
             : u
         )
       );
+      showSuccess("Challenge berhasil dihapus");
+    } else {
+      showError("Gagal menghapus challenge");
     }
     setLoadingId(null);
   };
 
   const handleSaveChallenge = () => {
+    setAddingChallenge(null);
+    setEditingChallenge(null);
     router.refresh();
   };
 
   const handleSaveLesson = () => {
+    setAddingLesson(null);
+    setEditingLesson(null);
     router.refresh();
   };
 

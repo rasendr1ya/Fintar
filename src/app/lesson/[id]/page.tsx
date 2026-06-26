@@ -2,7 +2,9 @@ import { getLessonById, getChallengesByLessonId } from "@/features/learning/acti
 import { LessonContent } from "@/features/learning/components/LessonContent";
 import { getCurrentUser, createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
 import { Finny } from "@/components/mascot/Finny";
+import { Button } from "@/components/ui/Button";
 import { calculateMaxHearts } from "@/lib/utils";
 import { BASE_HEARTS } from "@/lib/constants";
 
@@ -45,6 +47,9 @@ export default async function LessonPage({ params }: LessonPageProps) {
       <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-4">
         <Finny pose="sad" size={120} />
         <p className="text-muted mt-4 text-center">Belum ada soal untuk pelajaran ini.</p>
+        <Link href="/learn" className="mt-6">
+          <Button>Kembali ke Beranda</Button>
+        </Link>
       </div>
     );
   }

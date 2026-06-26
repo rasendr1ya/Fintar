@@ -68,6 +68,7 @@ export interface Challenge {
   question: string;
   options: string[];
   correct_answer: string;
+  image_url?: string | null;
   order_index: number;
   is_deleted: boolean;
 }

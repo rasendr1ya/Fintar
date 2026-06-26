@@ -27,6 +27,7 @@ export {
   updateChallenge,
   deleteChallenge,
   reorderChallenges,
+  uploadChallengeImage,
 } from "./challenges";
 export type { CreateChallengeInput, UpdateChallengeInput } from "./challenges";
 

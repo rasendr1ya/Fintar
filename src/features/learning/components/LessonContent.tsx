@@ -416,6 +416,18 @@ export function LessonContent({
           {currentChallenge?.question}
         </h2>
 
+        {/* Challenge Image */}
+        {currentChallenge?.image_url && (
+          <div className="mb-8 flex justify-center">
+            <img
+              src={currentChallenge.image_url}
+              alt="Ilustrasi soal"
+              className="max-w-full rounded-xl border border-border shadow-sm"
+              style={{ maxHeight: "300px", objectFit: "contain" }}
+            />
+          </div>
+        )}
+
         {/* Options */}
         <div className="space-y-3">
           {currentChallenge?.options.map((option, index) => {

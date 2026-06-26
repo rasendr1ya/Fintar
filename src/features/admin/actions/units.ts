@@ -2,7 +2,7 @@
 
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import type { Unit, UnitWithLessons, Lesson } from "@/types/database";
+import type { Unit, UnitWithLessons, Lesson, Challenge } from "@/types/database";
 
 export async function getAllUnitsAdmin(): Promise<{ data?: UnitWithLessons[]; error?: string }> {
   const profile = await getCurrentProfile();
@@ -26,10 +26,38 @@ export async function getAllUnitsAdmin(): Promise<{ data?: UnitWithLessons[]; er
 
   if (lessonsError) return { error: "Gagal memuat lesson" };
 
-  const unitsWithLessons: UnitWithLessons[] = (units as Unit[]).map((unit) => ({
-    ...unit,
-    lessons: (lessons as Lesson[]).filter((l) => l.unit_id === unit.id),
-  }));
+  const lessonIds = (lessons as Lesson[]).map((l) => l.id);
+  const challengesByLesson: Record<string, Challenge[]> = {};
+
+  if (lessonIds.length > 0) {
+    const { data: challenges, error: challengesError } = await supabase
+      .from("challenges")
+      .select("*")
+      .in("lesson_id", lessonIds)
+      .eq("is_deleted", false)
+      .order("order_index", { ascending: true });
+
+    if (!challengesError && challenges) {
+      for (const c of challenges as Challenge[]) {
+        const normalized = {
+          ...c,
+          options: typeof c.options === "string" ? JSON.parse(c.options) : c.options,
+        };
+        if (!challengesByLesson[c.lesson_id]) challengesByLesson[c.lesson_id] = [];
+        challengesByLesson[c.lesson_id].push(normalized as Challenge);
+      }
+    }
+  }
+
+  const unitsWithLessons: UnitWithLessons[] = (units as Unit[]).map((unit) => {
+    const unitLessons = (lessons as Lesson[]).filter((l) => l.unit_id === unit.id).map((lesson) => {
+      return {
+        ...lesson,
+        challenges: challengesByLesson[lesson.id] || [],
+      } as Lesson & { challenges: Challenge[] };
+    });
+    return { ...unit, lessons: unitLessons } as UnitWithLessons;
+  });
 
   return { data: unitsWithLessons };
 }

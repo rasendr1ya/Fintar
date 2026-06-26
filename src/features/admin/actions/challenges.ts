@@ -2,6 +2,7 @@
 
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { MAX_IMAGE_UPLOAD_BYTES } from "@/lib/constants";
 import type { Challenge } from "@/types/database";
 
 export async function getChallengesByLesson(lessonId: string): Promise<{ data?: Challenge[]; error?: string }> {
@@ -55,6 +56,7 @@ export interface CreateChallengeInput {
   question: string;
   options: string[];
   correct_answer: string;
+  image_url?: string | null;
   order_index?: number;
 }
 
@@ -94,6 +96,7 @@ export async function createChallenge(input: CreateChallengeInput): Promise<{ su
         question: input.question.trim(),
         options: validOptions,
         correct_answer: input.correct_answer.trim(),
+        image_url: input.image_url || null,
         order_index: nextOrder,
       })
       .select()
@@ -116,6 +119,7 @@ export async function createChallenge(input: CreateChallengeInput): Promise<{ su
       question: input.question.trim(),
       options: validOptions,
       correct_answer: input.correct_answer.trim(),
+      image_url: input.image_url || null,
       order_index: orderIndex,
     })
     .select()
@@ -135,6 +139,7 @@ export interface UpdateChallengeInput {
   question?: string;
   options?: string[];
   correct_answer?: string;
+  image_url?: string | null;
   order_index?: number;
 }
 
@@ -160,6 +165,7 @@ export async function updateChallenge(id: string, input: UpdateChallengeInput): 
     if (!input.correct_answer.trim()) return { error: "Jawaban benar wajib diisi" };
     updateData.correct_answer = input.correct_answer.trim();
   }
+  if (input.image_url !== undefined) updateData.image_url = input.image_url;
   if (input.order_index !== undefined) updateData.order_index = input.order_index;
 
   const { data, error } = await supabase
@@ -217,4 +223,37 @@ export async function reorderChallenges(orderedIds: string[]): Promise<{ success
   revalidatePath("/learn");
 
   return { success: true };
+}
+
+export async function uploadChallengeImage(formData: FormData): Promise<{ success?: boolean; url?: string; error?: string }> {
+  const profile = await getCurrentProfile();
+  if (!profile?.is_admin) return { error: "Unauthorized" };
+
+  const file = formData.get("file") as File | null;
+  if (!file) return { error: "File tidak ditemukan" };
+
+  if (!file.type.startsWith("image/")) return { error: "File harus berupa gambar" };
+
+  if (file.size > MAX_IMAGE_UPLOAD_BYTES) return { error: "Ukuran file maksimal 5MB" };
+
+  const supabase = await createClient();
+
+  const fileExt = file.name.split(".").pop() || "jpg";
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+  const filePath = `questions/${fileName}`;
+
+  const { error } = await supabase.storage
+    .from("challenge-images")
+    .upload(filePath, file, {
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (error) return { error: "Gagal mengupload gambar" };
+
+  const { data: urlData } = supabase.storage
+    .from("challenge-images")
+    .getPublicUrl(filePath);
+
+  return { success: true, url: urlData.publicUrl };
 }

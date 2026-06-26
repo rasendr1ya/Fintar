@@ -13,6 +13,7 @@ import {
   deleteLesson,
 } from "@/features/admin/actions";
 import type { Lesson } from "@/types/database";
+import { showSuccess, showError } from "@/lib/toast";
 
 const lessonSchema = z.object({
   title: z.string().min(1, "Judul wajib diisi").max(100, "Judul terlalu panjang"),
@@ -58,13 +59,16 @@ export function LessonForm({ unitId, lesson, onSuccess, onCancel }: LessonFormPr
 
       if ("error" in result && result.error) {
         setError(result.error);
+        showError("Gagal menyimpan lesson");
         return;
       }
 
+      showSuccess(lesson ? "Perubahan berhasil disimpan!" : "Lesson berhasil ditambahkan!");
       router.refresh();
       if (onSuccess) onSuccess();
     } catch {
       setError("Terjadi kesalahan");
+      showError("Terjadi kesalahan. Coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -79,10 +83,12 @@ export function LessonForm({ unitId, lesson, onSuccess, onCancel }: LessonFormPr
 
     if ("error" in result && result.error) {
       setError(result.error);
+      showError("Gagal menghapus lesson");
       setIsDeleting(false);
       return;
     }
 
+    showSuccess("Lesson berhasil dihapus");
     router.refresh();
     if (onSuccess) onSuccess();
   };

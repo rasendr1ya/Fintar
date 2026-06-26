@@ -7,6 +7,7 @@
 -- ============================================
 
 -- ─── units — INSERT + UPDATE ───
+DROP POLICY IF EXISTS "Admin can insert units" ON public.units;
 CREATE POLICY "Admin can insert units"
   ON public.units FOR INSERT
   WITH CHECK (
@@ -17,6 +18,7 @@ CREATE POLICY "Admin can insert units"
     )
   );
 
+DROP POLICY IF EXISTS "Admin can update units" ON public.units;
 CREATE POLICY "Admin can update units"
   ON public.units FOR UPDATE
   USING (
@@ -35,6 +37,7 @@ CREATE POLICY "Admin can update units"
   );
 
 -- ─── lessons — INSERT + UPDATE ───
+DROP POLICY IF EXISTS "Admin can insert lessons" ON public.lessons;
 CREATE POLICY "Admin can insert lessons"
   ON public.lessons FOR INSERT
   WITH CHECK (
@@ -45,6 +48,7 @@ CREATE POLICY "Admin can insert lessons"
     )
   );
 
+DROP POLICY IF EXISTS "Admin can update lessons" ON public.lessons;
 CREATE POLICY "Admin can update lessons"
   ON public.lessons FOR UPDATE
   USING (
@@ -63,6 +67,7 @@ CREATE POLICY "Admin can update lessons"
   );
 
 -- ─── challenges — INSERT + UPDATE ───
+DROP POLICY IF EXISTS "Admin can insert challenges" ON public.challenges;
 CREATE POLICY "Admin can insert challenges"
   ON public.challenges FOR INSERT
   WITH CHECK (
@@ -73,6 +78,7 @@ CREATE POLICY "Admin can insert challenges"
     )
   );
 
+DROP POLICY IF EXISTS "Admin can update challenges" ON public.challenges;
 CREATE POLICY "Admin can update challenges"
   ON public.challenges FOR UPDATE
   USING (
@@ -91,6 +97,7 @@ CREATE POLICY "Admin can update challenges"
   );
 
 -- ─── articles — INSERT + UPDATE ───
+DROP POLICY IF EXISTS "Admin can insert articles" ON public.articles;
 CREATE POLICY "Admin can insert articles"
   ON public.articles FOR INSERT
   WITH CHECK (
@@ -101,6 +108,7 @@ CREATE POLICY "Admin can insert articles"
     )
   );
 
+DROP POLICY IF EXISTS "Admin can update articles" ON public.articles;
 CREATE POLICY "Admin can update articles"
   ON public.articles FOR UPDATE
   USING (
