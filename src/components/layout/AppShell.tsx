@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
 import { TopBar } from "./TopBar";
+import { AdminFAB } from "./AdminFAB";
 
 interface AppShellProps {
   children: ReactNode;
@@ -49,6 +50,9 @@ export function AppShell({
 
       {/* Mobile Bottom Nav */}
       <BottomNav />
+
+      {/* Mobile Admin FAB */}
+      {isAdmin && <AdminFAB isAdmin />}
     </div>
   );
 }
